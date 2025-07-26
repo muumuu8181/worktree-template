@@ -562,8 +562,17 @@
             if (!gameState.isPlaying) return;
             
             const x = Math.random() * (canvas.width - 50);
-            const y = canvas.height + 50;
+            const y = -100 - Math.random() * 50; // 画面上部から生成
             bamboos.push(new Bamboo(x, y));
+        }
+        
+        // 初期竹の生成（ゲーム開始時）
+        function spawnInitialBamboos() {
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    spawnBamboo();
+                }, i * 300); // 0.3秒間隔で3本生成
+            }
         }
 
         // タッチ・マウス入力処理
@@ -752,15 +761,22 @@
             gameState.combo = 0;
             gameState.lastCutTime = 0;
             
+            // 配列をクリア
+            bamboos = [];
+            particles = [];
+            
             initAudio();
             updateUI();
             
-            // 竹の定期生成
+            // 即座に初期竹を生成
+            spawnInitialBamboos();
+            
+            // 竹の定期生成（より頻繁に）
             setInterval(() => {
-                if (gameState.isPlaying && Math.random() < 0.7) {
+                if (gameState.isPlaying && Math.random() < 0.8) {
                     spawnBamboo();
                 }
-            }, 1500);
+            }, 1000); // 1秒間隔に短縮
         }
 
         // PWA マニフェスト動的生成
