@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リアルタイムストラテジー簡易版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0c1445, #1a2980, #26d0ce);
+            color: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            padding: 10px;
+        }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-right: 15px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            z-index: 10;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5, #00d2ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+            50% { filter: hue-rotate(120deg) brightness(1.2); }
+        }
+
+        .game-container {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 13px;
+            cursor: crosshair;
+        }
+
+        .game-ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            z-index: 10;
+            min-width: 200px;
+        }
+
+        .minimap {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 150px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00d2ff;
+            border-radius: 8px;
+            z-index: 10;
+        }
+
+        .controls {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+        }
+
+        .control-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: #00d2ff;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+        }
+
+        button {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            margin: 3px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 210, 255, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        button.danger:hover {
+            box-shadow: 0 6px 25px rgba(255, 107, 107, 0.5);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .unit-info {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            margin-top: 15px;
+        }
+
+        .stage-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stage-btn {
+            padding: 8px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .stage-btn.active {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            color: #000;
+        }
+
+        .stats-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00d2ff;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .battle-log {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 10px;
+            height: 120px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            line-height: 1.3;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+        }
+
+        .log-entry {
+            margin-bottom: 2px;
+            opacity: 0.9;
+        }
+
+        .log-entry.combat {
+            color: #ff6b6b;
+        }
+
+        .log-entry.move {
+            color: #00d2ff;
+        }
+
+        .log-entry.victory {
+            color: #26d0ce;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .main-area {
+                margin-right: 0;
+                margin-bottom: 10px;
+                height: 60vh;
+            }
+
+            .controls {
+                width: 100%;
+                max-height: 40vh;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .minimap {
+                width: 100px;
+                height: 100px;
+            }
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .difficulty-btn {
+            flex: 1;
+            padding: 6px;
+            font-size: 10px;
+        }
+
+        .difficulty-btn.easy { background: linear-gradient(135deg, #26d0ce, #1abc9c); }
+        .difficulty-btn.normal { background: linear-gradient(135deg, #f9ca24, #f0932b); }
+        .difficulty-btn.hard { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .formation-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .formation-btn {
+            flex: 1;
+            min-width: 60px;
+            padding: 5px;
+            font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-area">
+            <header>
+                <h1>⚔️ リアルタイムストラテジー</h1>
+                <p>A*アルゴリズムによる高度なAI戦略バトル</p>
+            </header>
+
+            <div class="game-container">
+                <canvas id="gameCanvas"></canvas>
+                
+                <div class="game-ui" id="gameUI">
+                    <div><strong>ゲーム状態:</strong> <span id="gameState">待機中</span></div>
+                    <div><strong>現在のステージ:</strong> <span id="currentStage">1</span></div>
+                    <div><strong>時間:</strong> <span id="gameTime">00:00</span></div>
+                    <div><strong>選択ユニット:</strong> <span id="selectedUnit">なし</span></div>
+                </div>
+
+                <canvas id="minimap" class="minimap"></canvas>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-section">
+                <h3>ゲーム制御</h3>
+                
+                <div class="stats-display">
+                    <div class="stat-card">
+                        <div class="stat-value" id="playerUnits">0</div>
+                        <div class="stat-label">プレイヤー</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="enemyUnits">0</div>
+                        <div class="stat-label">敵AI</div>
+                    </div>
+                </div>
+
+                <button onclick="startGame()" id="startBtn">⚔️ 戦闘開始</button>
+                <button onclick="pauseGame()" id="pauseBtn" disabled>⏸ 一時停止</button>
+                <button onclick="resetGame()" class="danger">🔄 リセット</button>
+            </div>
+
+            <div class="control-section">
+                <h3>ステージ選択</h3>
+                <div class="stage-selector">
+                    <button class="stage-btn active" onclick="selectStage(1)">ステージ 1</button>
+                    <button class="stage-btn" onclick="selectStage(2)">ステージ 2</button>
+                    <button class="stage-btn" onclick="selectStage(3)">ステージ 3</button>
+                    <button class="stage-btn" onclick="selectStage(4)">ステージ 4</button>
+                    <button class="stage-btn" onclick="selectStage(5)">ステージ 5</button>
+                    <button class="stage-btn" onclick="selectStage(0)">ランダム</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>難易度設定</h3>
+                <div class="difficulty-selector">
+                    <button class="difficulty-btn easy" onclick="setDifficulty('easy')">簡単</button>
+                    <button class="difficulty-btn normal active" onclick="setDifficulty('normal')">普通</button>
+                    <button class="difficulty-btn hard" onclick="setDifficulty('hard')">困難</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>ユニット操作</h3>
+                <div class="action-buttons">
+                    <button onclick="addPlayerUnit()">➕ ユニット追加</button>
+                    <button onclick="selectAllUnits()">🎯 全選択</button>
+                    <button onclick="attackMove()">⚔️ 攻撃移動</button>
+                    <button onclick="defendPosition()">🛡️ 防御</button>
+                </div>
+
+                <div class="formation-selector">
+                    <button class="formation-btn" onclick="setFormation('line')">一列</button>
+                    <button class="formation-btn" onclick="setFormation('circle')">円形</button>
+                    <button class="formation-btn" onclick="setFormation('wedge')">楔形</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>戦闘ログ</h3>
+                <div class="battle-log" id="battleLog">
+                    <div class="log-entry">ゲーム開始を待機中...</div>
+                </div>
+            </div>
+
+            <div class="unit-info" id="unitInfo">
+                ユニットを選択すると詳細情報がここに表示されます
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
