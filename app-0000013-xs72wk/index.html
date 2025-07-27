@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 リアルタイム暗号通貨・株価トレーディングダッシュボード</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #2d1b69 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.2;
+            color: #00ff41;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #00ff41, #00d4aa, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px rgba(0, 255, 65, 0.5)); }
+            to { filter: drop-shadow(0 0 25px rgba(0, 212, 170, 0.8)); }
+        }
+
+        .market-status {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(0, 255, 65, 0.1);
+            border-radius: 25px;
+            border: 1px solid rgba(0, 255, 65, 0.3);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online {
+            background: #00ff41;
+        }
+
+        .status-dot.offline {
+            background: #ff4757;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            border-color: rgba(0, 255, 65, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 255, 65, 0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+        }
+
+        .panel-title {
+            color: #00ff41;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .watchlist {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .crypto-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(0, 255, 65, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 65, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .crypto-item:hover {
+            background: rgba(0, 255, 65, 0.1);
+            border-color: rgba(0, 255, 65, 0.3);
+            transform: translateX(5px);
+        }
+
+        .crypto-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .crypto-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+
+        .crypto-details h3 {
+            margin-bottom: 3px;
+            color: #ffffff;
+        }
+
+        .crypto-details p {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .crypto-price {
+            text-align: right;
+        }
+
+        .price {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .change {
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .change.positive {
+            color: #00ff41;
+        }
+
+        .change.negative {
+            color: #ff4757;
+        }
+
+        .main-chart {
+            position: relative;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            overflow: hidden;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            padding: 20px;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 255, 65, 0.1), rgba(0, 212, 170, 0.05));
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-line {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(45deg, #00ff41, #00d4aa);
+            animation: chartMove 3s ease-in-out infinite;
+        }
+
+        @keyframes chartMove {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .trading-tools {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .tool-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(0, 255, 65, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 65, 0.1);
+        }
+
+        .tool-section h3 {
+            color: #00d4aa;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            font-size: 0.9em;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #00ff41;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-buy {
+            background: linear-gradient(45deg, #00ff41, #00d4aa);
+            color: #000000;
+        }
+
+        .btn-sell {
+            background: linear-gradient(45deg, #ff4757, #ff6348);
+            color: #ffffff;
+        }
+
+        .btn-neutral {
+            background: linear-gradient(45deg, #0099ff, #00d4aa);
+            color: #ffffff;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .market-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .market-card {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .market-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 255, 65, 0.5);
+        }
+
+        .market-card h3 {
+            color: #00ff41;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .market-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00ff41, #00d4aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .market-change {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .news-feed {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .news-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(0, 255, 65, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #00ff41;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .news-item:hover {
+            background: rgba(0, 255, 65, 0.1);
+            transform: translateX(5px);
+        }
+
+        .news-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffffff;
+        }
+
+        .news-summary {
+            color: #ccc;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .news-time {
+            color: #00ff41;
+            font-size: 0.8em;
+            margin-top: 8px;
+        }
+
+        .portfolio-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .portfolio-item {
+            background: rgba(0, 255, 65, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            text-align: center;
+        }
+
+        .portfolio-label {
+            color: #ccc;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .portfolio-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #00ff41;
+        }
+
+        .alerts-section {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .alert-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(255, 71, 87, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #ff4757;
+            animation: alertBlink 2s infinite;
+        }
+
+        @keyframes alertBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .alert-text {
+            color: #ff6348;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .alert-time {
+            color: #999;
+            font-size: 0.8em;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 2fr;
+            }
+            
+            .trading-tools {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .market-status {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .main-chart {
+                height: 300px;
+            }
+        }
+
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 65, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 65, 0.7);
+        }
+
+        /* アニメーション */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 65, 0.3);
+            border-radius: 50%;
+            border-top-color: #00ff41;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg" id="matrixBg"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>📈 リアルタイム暗号通貨・株価トレーディングダッシュボード</h1>
+            <p>プロフェッショナル投資家のためのリアルタイム市場分析プラットフォーム</p>
+            
+            <div class="market-status">
+                <div class="status-item">
+                    <div class="status-dot online"></div>
+                    <span>暗号通貨市場</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot online"></div>
+                    <span>株式市場</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot online"></div>
+                    <span>外国為替</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot offline"></div>
+                    <span>商品市場</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="market-overview">
+            <div class="market-card fade-in">
+                <h3>📊 総市場時価総額</h3>
+                <div class="market-value" id="totalMarketCap">$2.1T</div>
+                <div class="market-change positive" id="marketCapChange">+2.34%</div>
+            </div>
+            <div class="market-card fade-in">
+                <h3>🔥 24時間取引量</h3>
+                <div class="market-value" id="totalVolume">$89.2B</div>
+                <div class="market-change positive" id="volumeChange">+15.67%</div>
+            </div>
+            <div class="market-card fade-in">
+                <h3>💎 ビットコイン優位性</h3>
+                <div class="market-value" id="btcDominance">42.1%</div>
+                <div class="market-change negative" id="dominanceChange">-0.87%</div>
+            </div>
+            <div class="market-card fade-in">
+                <h3>🚀 恐怖・貪欲指数</h3>
+                <div class="market-value" id="fearGreed">78</div>
+                <div class="market-change positive">貪欲</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- ウォッチリスト -->
+            <div class="panel slide-up">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        👁️ ウォッチリスト
+                    </div>
+                    <div class="loading"></div>
+                </div>
+                <div class="watchlist" id="watchlist">
+                    <!-- 暗号通貨リストはJavaScriptで動的生成 -->
+                </div>
+            </div>
+
+            <!-- メインチャート -->
+            <div class="panel slide-up">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        📈 BTC/USD - リアルタイムチャート
+                    </div>
+                    <select id="timeframe" style="background: rgba(0,0,0,0.7); color: #00ff41; border: 1px solid rgba(0,255,65,0.3); border-radius: 5px; padding: 5px;">
+                        <option value="1m">1分</option>
+                        <option value="5m">5分</option>
+                        <option value="1h" selected>1時間</option>
+                        <option value="1d">1日</option>
+                    </select>
+                </div>
+                <div class="main-chart">
+                    <div class="chart-container">
+                        <div class="chart-canvas" id="mainChart">
+                            <!-- チャートはJavaScriptで動的生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- トレーディングツール -->
+            <div class="panel trading-tools slide-up">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        🎯 トレーディング
+                    </div>
+                </div>
+                
+                <div class="tool-section">
+                    <h3>📊 ポートフォリオ</h3>
+                    <div class="portfolio-summary">
+                        <div class="portfolio-item">
+                            <div class="portfolio-label">総資産</div>
+                            <div class="portfolio-value" id="totalBalance">$125,430</div>
+                        </div>
+                        <div class="portfolio-item">
+                            <div class="portfolio-label">今日の損益</div>
+                            <div class="portfolio-value" id="dailyPL" style="color: #00ff41;">+$3,240</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>💰 クイック注文</h3>
+                    <div class="input-group">
+                        <label>通貨ペア</label>
+                        <select id="tradingPair">
+                            <option value="BTC/USD">BTC/USD</option>
+                            <option value="ETH/USD">ETH/USD</option>
+                            <option value="ADA/USD">ADA/USD</option>
+                            <option value="DOT/USD">DOT/USD</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>注文タイプ</label>
+                        <select id="orderType">
+                            <option value="market">成行注文</option>
+                            <option value="limit">指値注文</option>
+                            <option value="stop">ストップ注文</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>数量</label>
+                        <input type="number" id="orderAmount" placeholder="0.001" step="0.001">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>価格 (USD)</label>
+                        <input type="number" id="orderPrice" placeholder="43,250.00" step="0.01">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                        <button class="btn btn-buy" onclick="executeOrder('buy')">買い注文</button>
+                        <button class="btn btn-sell" onclick="executeOrder('sell')">売り注文</button>
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>🎯 価格アラート</h3>
+                    <div class="input-group">
+                        <label>通貨</label>
+                        <select id="alertCurrency">
+                            <option value="BTC">Bitcoin (BTC)</option>
+                            <option value="ETH">Ethereum (ETH)</option>
+                            <option value="ADA">Cardano (ADA)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>目標価格</label>
+                        <input type="number" id="alertPrice" placeholder="45,000.00">
+                    </div>
+                    
+                    <button class="btn btn-neutral" style="width: 100%;" onclick="setAlert()">
+                        🔔 アラート設定
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- アラート表示 -->
+        <div class="alerts-section">
+            <div class="panel-header">
+                <div class="panel-title">
+                    ⚠️ 市場アラート
+                </div>
+            </div>
+            <div id="alertsContainer">
+                <div class="alert-item">
+                    <div class="alert-text">📈 BTC価格が$44,000を突破しました</div>
+                    <div class="alert-time">2分前</div>
+                </div>
+                <div class="alert-item">
+                    <div class="alert-text">🚨 ETH/USDの取引量が急増中です</div>
+                    <div class="alert-time">5分前</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ニュースフィード -->
+        <div class="news-feed">
+            <div class="panel-header">
+                <div class="panel-title">
+                    📰 市場ニュース
+                </div>
+            </div>
+            <div id="newsFeed">
+                <div class="news-item fade-in">
+                    <div class="news-title">🏛️ 米連邦準備制度理事会、金利据え置きを発表</div>
+                    <div class="news-summary">FRBは政策金利を現行の5.25-5.50%に据え置くことを決定。暗号通貨市場に与える影響を分析中。</div>
+                    <div class="news-time">30分前</div>
+                </div>
+                <div class="news-item fade-in">
+                    <div class="news-title">🌟 新しいDeFiプロトコルが$50M調達を完了</div>
+                    <div class="news-summary">次世代分散型金融プラットフォームが大手VCから資金調達。革新的な流動性ソリューションを提供予定。</div>
+                    <div class="news-time">1時間前</div>
+                </div>
+                <div class="news-item fade-in">
+                    <div class="news-title">⚡ ビットコインのライトニングネットワーク容量が過去最高</div>
+                    <div class="news-summary">決済の高速化と手数料削減を可能にするライトニングネットワークの容量が新記録を達成。</div>
+                    <div class="news-time">2時間前</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let marketData = {};
+        let watchlistData = [];
+        let chartData = [];
+        let updateInterval = null;
+        let alertsData = [];
+
+        // 暗号通貨データ
+        const cryptoData = [
+            { symbol: 'BTC', name: 'Bitcoin', price: 43250.67, change: 2.34, icon: '₿', color: '#f7931a' },
+            { symbol: 'ETH', name: 'Ethereum', price: 2658.42, change: 3.45, icon: 'Ξ', color: '#627eea' },
+            { symbol: 'ADA', name: 'Cardano', price: 0.487, change: -1.23, icon: '₳', color: '#0033ad' },
+            { symbol: 'DOT', name: 'Polkadot', price: 7.234, change: 5.67, icon: '●', color: '#e6007a' },
+            { symbol: 'LINK', name: 'Chainlink', price: 14.82, change: -2.11, icon: '⬡', color: '#375bd2' },
+            { symbol: 'UNI', name: 'Uniswap', price: 6.234, change: 1.89, icon: '🦄', color: '#ff007a' },
+            { symbol: 'MATIC', name: 'Polygon', price: 0.89, change: 4.32, icon: '⬟', color: '#8247e5' },
+            { symbol: 'AVAX', name: 'Avalanche', price: 37.45, change: -0.78, icon: '🔺', color: '#e84142' }
+        ];
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMatrix();
+            initializeWatchlist();
+            initializeChart();
+            startRealTimeUpdates();
+            updateMarketOverview();
+            setupEventListeners();
+        });
+
+        function initializeMatrix() {
+            const matrix = document.getElementById('matrixBg');
+            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+            
+            for (let i = 0; i < 50; i++) {
+                const line = document.createElement('div');
+                line.style.position = 'absolute';
+                line.style.left = Math.random() * 100 + '%';
+                line.style.top = Math.random() * 100 + '%';
+                line.style.animation = `fall ${Math.random() * 10 + 5}s linear infinite`;
+                line.style.animationDelay = Math.random() * 5 + 's';
+                
+                let text = '';
+                for (let j = 0; j < 20; j++) {
+                    text += chars[Math.floor(Math.random() * chars.length)] + '\n';
+                }
+                line.textContent = text;
+                matrix.appendChild(line);
+            }
+
+            // CSSアニメーションを追加
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fall {
+                    0% { transform: translateY(-100vh); opacity: 1; }
+                    100% { transform: translateY(100vh); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        function initializeWatchlist() {
+            const watchlist = document.getElementById('watchlist');
+            watchlist.innerHTML = '';
+
+            cryptoData.forEach((crypto, index) => {
+                const item = document.createElement('div');
+                item.className = 'crypto-item fade-in';
+                item.style.animationDelay = `${index * 0.1}s`;
+                item.onclick = () => selectCrypto(crypto.symbol);
+
+                const changeClass = crypto.change >= 0 ? 'positive' : 'negative';
+                const changeSymbol = crypto.change >= 0 ? '+' : '';
+
+                item.innerHTML = `
+                    <div class="crypto-info">
+                        <div class="crypto-icon" style="background: ${crypto.color};">
+                            ${crypto.icon}
+                        </div>
+                        <div class="crypto-details">
+                            <h3>${crypto.symbol}</h3>
+                            <p>${crypto.name}</p>
+                        </div>
+                    </div>
+                    <div class="crypto-price">
+                        <div class="price">$${crypto.price.toLocaleString()}</div>
+                        <div class="change ${changeClass}">${changeSymbol}${crypto.change}%</div>
+                    </div>
+                `;
+
+                watchlist.appendChild(item);
+            });
+        }
+
+        function initializeChart() {
+            const chartContainer = document.getElementById('mainChart');
+            chartContainer.innerHTML = '';
+
+            // チャートラインを生成
+            for (let i = 0; i < 50; i++) {
+                const line = document.createElement('div');
+                line.className = 'chart-line';
+                line.style.left = (i * 2) + '%';
+                line.style.height = Math.random() * 80 + 10 + '%';
+                line.style.bottom = '10px';
+                line.style.animationDelay = `${i * 0.1}s`;
+                chartContainer.appendChild(line);
+            }
+
+            // 価格ラベルを追加
+            const priceLabel = document.createElement('div');
+            priceLabel.style.cssText = `
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                color: #00ff41;
+                font-size: 1.5em;
+                font-weight: bold;
+                text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+            `;
+            priceLabel.textContent = '$43,250.67';
+            priceLabel.id = 'chartPrice';
+            chartContainer.appendChild(priceLabel);
+
+            // 変化率ラベルを追加
+            const changeLabel = document.createElement('div');
+            changeLabel.style.cssText = `
+                position: absolute;
+                top: 50px;
+                left: 20px;
+                color: #00ff41;
+                font-size: 1em;
+                text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+            `;
+            changeLabel.textContent = '+2.34% (+$1,012.34)';
+            changeLabel.id = 'chartChange';
+            chartContainer.appendChild(changeLabel);
+        }
+
+        function startRealTimeUpdates() {
+            updateInterval = setInterval(() => {
+                updatePrices();
+                updateChart();
+                updateMarketOverview();
+                checkAlerts();
+            }, 3000);
+        }
+
+        function updatePrices() {
+            cryptoData.forEach(crypto => {
+                // 価格をランダムに変動
+                const volatility = 0.02; // 2%の変動
+                const change = (Math.random() - 0.5) * volatility;
+                crypto.price *= (1 + change);
+                
+                // 変化率を更新
+                crypto.change += (Math.random() - 0.5) * 2;
+                crypto.change = Math.max(-20, Math.min(20, crypto.change)); // -20%から+20%の範囲
+            });
+
+            // ウォッチリストを更新
+            initializeWatchlist();
+        }
+
+        function updateChart() {
+            const chartLines = document.querySelectorAll('.chart-line');
+            chartLines.forEach(line => {
+                line.style.height = Math.random() * 80 + 10 + '%';
+                line.style.opacity = Math.random() * 0.7 + 0.3;
+            });
+
+            // 価格ラベルを更新
+            const btcData = cryptoData.find(c => c.symbol === 'BTC');
+            if (btcData) {
+                document.getElementById('chartPrice').textContent = `$${btcData.price.toLocaleString()}`;
+                
+                const changeSymbol = btcData.change >= 0 ? '+' : '';
+                const changeColor = btcData.change >= 0 ? '#00ff41' : '#ff4757';
+                const changeLabel = document.getElementById('chartChange');
+                changeLabel.textContent = `${changeSymbol}${btcData.change.toFixed(2)}% (${changeSymbol}$${(btcData.price * btcData.change / 100).toFixed(2)})`;
+                changeLabel.style.color = changeColor;
+            }
+        }
+
+        function updateMarketOverview() {
+            // 市場データを更新
+            const totalCap = (Math.random() * 0.5 + 2.0).toFixed(1);
+            const volume = (Math.random() * 20 + 80).toFixed(1);
+            const dominance = (Math.random() * 5 + 40).toFixed(1);
+            const fearGreed = Math.floor(Math.random() * 100);
+
+            document.getElementById('totalMarketCap').textContent = `$${totalCap}T`;
+            document.getElementById('totalVolume').textContent = `$${volume}B`;
+            document.getElementById('btcDominance').textContent = `${dominance}%`;
+            document.getElementById('fearGreed').textContent = fearGreed;
+
+            // 変化率を更新
+            document.getElementById('marketCapChange').textContent = `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 5).toFixed(2)}%`;
+            document.getElementById('volumeChange').textContent = `+${(Math.random() * 20 + 5).toFixed(2)}%`;
+            document.getElementById('dominanceChange').textContent = `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 2).toFixed(2)}%`;
+
+            // ポートフォリオを更新
+            const totalBalance = (Math.random() * 50000 + 100000).toFixed(0);
+            const dailyPL = (Math.random() * 10000 - 2000).toFixed(0);
+            
+            document.getElementById('totalBalance').textContent = `$${parseInt(totalBalance).toLocaleString()}`;
+            const plElement = document.getElementById('dailyPL');
+            plElement.textContent = `${dailyPL >= 0 ? '+' : ''}$${Math.abs(dailyPL).toLocaleString()}`;
+            plElement.style.color = dailyPL >= 0 ? '#00ff41' : '#ff4757';
+        }
+
+        function selectCrypto(symbol) {
+            // 暗号通貨選択時の処理
+            const crypto = cryptoData.find(c => c.symbol === symbol);
+            if (crypto) {
+                document.querySelector('.panel-title').innerHTML = `📈 ${symbol}/USD - リアルタイムチャート`;
+                document.getElementById('tradingPair').value = `${symbol}/USD`;
+                
+                // チャートを更新
+                updateChart();
+                
+                showNotification(`${crypto.name} (${symbol})を選択しました`, 'success');
+            }
+        }
+
+        function executeOrder(type) {
+            const pair = document.getElementById('tradingPair').value;
+            const orderType = document.getElementById('orderType').value;
+            const amount = document.getElementById('orderAmount').value;
+            const price = document.getElementById('orderPrice').value;
+
+            if (!amount || parseFloat(amount) <= 0) {
+                showNotification('正しい数量を入力してください', 'error');
+                return;
+            }
+
+            // 注文実行シミュレーション
+            const orderValue = parseFloat(amount) * parseFloat(price || cryptoData[0].price);
+            
+            setTimeout(() => {
+                addAlert(`${type.toUpperCase()}注文が正常に執行されました`, `${pair} - ${amount} @ $${price || 'Market Price'}`);
+                showNotification(`${type}注文が正常に執行されました（$${orderValue.toFixed(2)}）`, 'success');
+                
+                // フォームをリセット
+                document.getElementById('orderAmount').value = '';
+                document.getElementById('orderPrice').value = '';
+            }, 1000);
+        }
+
+        function setAlert() {
+            const currency = document.getElementById('alertCurrency').value;
+            const price = document.getElementById('alertPrice').value;
+
+            if (!price || parseFloat(price) <= 0) {
+                showNotification('正しい価格を入力してください', 'error');
+                return;
+            }
+
+            addAlert(`価格アラート設定完了`, `${currency}が$${price}に達したときに通知します`);
+            showNotification(`${currency}の価格アラートを設定しました（$${price}）`, 'success');
+            
+            document.getElementById('alertPrice').value = '';
+        }
+
+        function addAlert(title, message) {
+            const alertsContainer = document.getElementById('alertsContainer');
+            const alertItem = document.createElement('div');
+            alertItem.className = 'alert-item';
+            
+            alertItem.innerHTML = `
+                <div class="alert-text">${title}</div>
+                <div class="alert-time">${message}</div>
+            `;
+            
+            alertsContainer.insertBefore(alertItem, alertsContainer.firstChild);
+            
+            // 古いアラートを削除（最大5個まで表示）
+            while (alertsContainer.children.length > 5) {
+                alertsContainer.removeChild(alertsContainer.lastChild);
+            }
+        }
+
+        function checkAlerts() {
+            // ランダムにアラートを生成
+            if (Math.random() < 0.1) { // 10%の確率
+                const alertMessages = [
+                    '📊 大口取引が検出されました',
+                    '🚀 取引量が急増しています',
+                    '⚡ 価格変動が激しくなっています',
+                    '🎯 サポートラインをテスト中',
+                    '📈 上昇トレンドが継続中'
+                ];
+                
+                const randomMessage = alertMessages[Math.floor(Math.random() * alertMessages.length)];
+                addAlert(randomMessage, 'たった今');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'linear-gradient(45deg, #00ff41, #00d4aa)' : 
+                           type === 'error' ? 'linear-gradient(45deg, #ff4757, #ff6348)' : 
+                           'linear-gradient(45deg, #0099ff, #00d4aa)'};
+                color: ${type === 'success' ? '#000' : '#fff'};
+                padding: 15px 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+                z-index: 1000;
+                animation: slideInRight 0.3s ease;
+                max-width: 300px;
+                font-weight: bold;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function setupEventListeners() {
+            // 時間軸変更
+            document.getElementById('timeframe').addEventListener('change', function() {
+                updateChart();
+                showNotification(`時間軸を${this.options[this.selectedIndex].text}に変更しました`, 'info');
+            });
+
+            // キーボードショートカット
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'b':
+                            e.preventDefault();
+                            document.getElementById('orderAmount').focus();
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            document.getElementById('orderAmount').focus();
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            updatePrices();
+                            updateChart();
+                            showNotification('データを手動更新しました', 'success');
+                            break;
+                    }
+                }
+            });
+        }
+
+        // CSSアニメーションを動的に追加
+        const additionalStyles = document.createElement('style');
+        additionalStyles.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(additionalStyles);
+
+        // ページ離脱時にインターバルをクリア
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>
