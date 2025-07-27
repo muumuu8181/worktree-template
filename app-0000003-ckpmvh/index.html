@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ペイントシステム - Professional Paint Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="toolbar">
+            <div class="logo">
+                <h1>🎨 ペイントシステム</h1>
+            </div>
+            
+            <div class="tool-section">
+                <div class="tool-group">
+                    <label>ツール</label>
+                    <div class="tool-buttons">
+                        <button class="tool-btn active" data-tool="brush" title="ブラシ">🖌️</button>
+                        <button class="tool-btn" data-tool="pencil" title="鉛筆">✏️</button>
+                        <button class="tool-btn" data-tool="marker" title="マーカー">🖍️</button>
+                        <button class="tool-btn" data-tool="eraser" title="消しゴム">🧽</button>
+                        <button class="tool-btn" data-tool="line" title="直線">📏</button>
+                        <button class="tool-btn" data-tool="circle" title="円">⭕</button>
+                        <button class="tool-btn" data-tool="rectangle" title="四角">🟦</button>
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <label>サイズ</label>
+                    <div class="size-controls">
+                        <input type="range" id="brushSize" min="1" max="100" value="5" class="slider">
+                        <span id="sizeValue">5px</span>
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <label>不透明度</label>
+                    <div class="opacity-controls">
+                        <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="1" class="slider">
+                        <span id="opacityValue">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="color-section">
+                <div class="tool-group">
+                    <label>色選択</label>
+                    <div class="color-controls">
+                        <input type="color" id="colorPicker" value="#000000">
+                        <div class="preset-colors">
+                            <div class="color-preset" data-color="#000000" style="background: #000000"></div>
+                            <div class="color-preset" data-color="#ff0000" style="background: #ff0000"></div>
+                            <div class="color-preset" data-color="#00ff00" style="background: #00ff00"></div>
+                            <div class="color-preset" data-color="#0000ff" style="background: #0000ff"></div>
+                            <div class="color-preset" data-color="#ffff00" style="background: #ffff00"></div>
+                            <div class="color-preset" data-color="#ff00ff" style="background: #ff00ff"></div>
+                            <div class="color-preset" data-color="#00ffff" style="background: #00ffff"></div>
+                            <div class="color-preset" data-color="#ffffff" style="background: #ffffff; border: 1px solid #ccc"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <div class="tool-group">
+                    <label>アクション</label>
+                    <div class="action-buttons">
+                        <button id="undoBtn" title="元に戻す">↶</button>
+                        <button id="redoBtn" title="やり直し">↷</button>
+                        <button id="clearBtn" title="全消去">🗑️</button>
+                        <input type="file" id="uploadBtn" accept="image/*" style="display: none;">
+                        <button onclick="document.getElementById('uploadBtn').click()" title="画像アップロード">📁</button>
+                        <button id="downloadBtn" title="画像ダウンロード">💾</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="paintCanvas" width="1200" height="800"></canvas>
+                <div id="cursor" class="custom-cursor"></div>
+            </div>
+            
+            <div class="side-panel">
+                <div class="panel-section">
+                    <h3>レイヤー</h3>
+                    <div class="layer-controls">
+                        <button id="addLayerBtn">+ レイヤー追加</button>
+                        <div id="layerList" class="layer-list">
+                            <div class="layer-item active" data-layer="0">
+                                <span>レイヤー 1</span>
+                                <div class="layer-opacity">
+                                    <input type="range" min="0" max="100" value="100" class="layer-opacity-slider">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>ブラシ設定</h3>
+                    <div class="brush-settings">
+                        <div class="setting-item">
+                            <label>ブラシ形状</label>
+                            <select id="brushShape">
+                                <option value="round">丸</option>
+                                <option value="square">四角</option>
+                                <option value="star">星</option>
+                                <option value="heart">ハート</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label>硬さ</label>
+                            <input type="range" id="brushHardness" min="0" max="100" value="100" class="slider">
+                            <span id="hardnessValue">100%</span>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label>間隔</label>
+                            <input type="range" id="brushSpacing" min="1" max="50" value="1" class="slider">
+                            <span id="spacingValue">1px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>フィルター</h3>
+                    <div class="filter-controls">
+                        <button class="filter-btn" data-filter="blur">ぼかし</button>
+                        <button class="filter-btn" data-filter="sharpen">シャープ</button>
+                        <button class="filter-btn" data-filter="emboss">エンボス</button>
+                        <button class="filter-btn" data-filter="edge">エッジ</button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>グラデーション</h3>
+                    <div class="gradient-controls">
+                        <button class="gradient-btn" data-gradient="linear">線形</button>
+                        <button class="gradient-btn" data-gradient="radial">放射</button>
+                        <div class="gradient-colors">
+                            <input type="color" id="gradientColor1" value="#ff0000">
+                            <input type="color" id="gradientColor2" value="#0000ff">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="status-bar">
+            <div class="status-info">
+                <span id="canvasSize">1200 × 800</span>
+                <span id="mousePos">0, 0</span>
+                <span id="zoomLevel">100%</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
