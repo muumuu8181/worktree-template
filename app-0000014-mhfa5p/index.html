@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 インタラクティブ3D宇宙探査シミュレーター</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(ellipse at center, #0a0a1a 0%, #000000 70%, #000000 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stars-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 20px;
+            border: 2px solid #00bfff;
+            box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #00bfff, #ff6b9d, #c44bd4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: headerGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes headerGlow {
+            from { filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.5)); }
+            to { filter: drop-shadow(0 0 25px rgba(255, 107, 157, 0.8)); }
+        }
+
+        .space-canvas {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle, rgba(0, 191, 255, 0.1) 0%, transparent 70%);
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(0, 191, 255, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+            z-index: 50;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 191, 255, 0.2);
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .control-section h3 {
+            color: #00bfff;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .control-row label {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .slider {
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #333, #00bfff);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00bfff, #ff6b9d);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #00bfff, #0080ff);
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #ff6b9d, #c44bd4);
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 107, 157, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.2);
+        }
+
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-10px) rotate(90deg); }
+            50% { transform: translateY(0px) rotate(180deg); }
+            75% { transform: translateY(-5px) rotate(270deg); }
+        }
+
+        .planet:hover {
+            transform: scale(1.2);
+            filter: brightness(1.3);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.6);
+        }
+
+        .planet-sun {
+            background: radial-gradient(circle, #ffeb3b 0%, #ff9800 50%, #f44336 100%);
+            animation: sunPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes sunPulse {
+            0%, 100% { box-shadow: 0 0 30px #ffeb3b; }
+            50% { box-shadow: 0 0 60px #ff9800, 0 0 100px #f44336; }
+        }
+
+        .planet-mercury {
+            background: radial-gradient(circle, #8c7853 0%, #a68b5b 100%);
+        }
+
+        .planet-venus {
+            background: radial-gradient(circle, #ffc649 0%, #ff8a00 100%);
+        }
+
+        .planet-earth {
+            background: radial-gradient(circle, #4fc3f7 0%, #29b6f6 30%, #0d47a1 100%);
+            position: relative;
+        }
+
+        .planet-earth::after {
+            content: '';
+            position: absolute;
+            top: 20%;
+            left: 30%;
+            width: 40%;
+            height: 40%;
+            background: #4caf50;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        .planet-mars {
+            background: radial-gradient(circle, #f44336 0%, #d32f2f 100%);
+        }
+
+        .planet-jupiter {
+            background: radial-gradient(circle, #ff9800 0%, #f57c00 50%, #d84315 100%);
+        }
+
+        .planet-saturn {
+            background: radial-gradient(circle, #ffeb3b 0%, #fbc02d 100%);
+            position: relative;
+        }
+
+        .planet-saturn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        .planet-uranus {
+            background: radial-gradient(circle, #00bcd4 0%, #0097a7 100%);
+        }
+
+        .planet-neptune {
+            background: radial-gradient(circle, #3f51b5 0%, #1a237e 100%);
+        }
+
+        .spacecraft {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(45deg, #ffffff, #e0e0e0);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            transition: all 0.3s ease;
+            z-index: 10;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+        }
+
+        .spacecraft.moving {
+            animation: spacecraftMove 2s ease-in-out;
+        }
+
+        @keyframes spacecraftMove {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(0, 191, 255, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 350px;
+            z-index: 50;
+        }
+
+        .planet-info {
+            display: none;
+        }
+
+        .planet-info.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .planet-info h3 {
+            color: #00bfff;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .info-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .mission-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(0, 191, 255, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            text-align: center;
+            min-width: 400px;
+        }
+
+        .mission-status {
+            margin-bottom: 15px;
+        }
+
+        .mission-title {
+            color: #00bfff;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .mission-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00bfff, #ff6b9d);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .mission-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .asteroid {
+            position: absolute;
+            background: radial-gradient(circle, #757575 0%, #424242 100%);
+            border-radius: 50%;
+            animation: asteroidSpin 8s linear infinite;
+        }
+
+        @keyframes asteroidSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .nebula {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255, 107, 157, 0.3) 0%, rgba(196, 75, 212, 0.2) 50%, transparent 100%);
+            border-radius: 50%;
+            animation: nebulaPulse 6s ease-in-out infinite;
+        }
+
+        @keyframes nebulaPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.2); }
+        }
+
+        .comet {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ffffff;
+        }
+
+        .comet::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            width: 30px;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), transparent);
+            transform: translateY(-50%);
+        }
+
+        .explosion {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #ffeb3b 0%, #ff9800 50%, transparent 100%);
+            border-radius: 50%;
+            animation: explode 0.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes explode {
+            0% { opacity: 1; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(2); }
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .control-panel,
+            .info-panel {
+                position: relative;
+                max-width: none;
+                margin: 10px;
+                top: auto;
+                left: auto;
+                right: auto;
+            }
+
+            .mission-panel {
+                position: relative;
+                bottom: auto;
+                left: auto;
+                transform: none;
+                margin: 10px;
+                min-width: auto;
+            }
+
+            .space-canvas {
+                height: 60vh;
+            }
+        }
+
+        /* 軌道線 */
+        .orbit {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: orbitRotate 20s linear infinite;
+        }
+
+        @keyframes orbitRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* アニメーション */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .warp-effect {
+            animation: warp 1s ease-in-out;
+        }
+
+        @keyframes warp {
+            0% { transform: scale(1); filter: blur(0px); }
+            50% { transform: scale(0.1); filter: blur(5px); }
+            100% { transform: scale(1); filter: blur(0px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars-bg" id="starsBg"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🚀 インタラクティブ3D宇宙探査シミュレーター</h1>
+            <p>太陽系を探索し、惑星間ミッションを実行しよう</p>
+        </div>
+
+        <div class="space-canvas" id="spaceCanvas">
+            <!-- 太陽系と宇宙船がここに動的生成される -->
+        </div>
+
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>🎛️ 表示設定</h3>
+                <div class="control-row">
+                    <label>ズーム</label>
+                    <input type="range" class="slider" id="zoomSlider" min="0.5" max="2" step="0.1" value="1">
+                </div>
+                <div class="control-row">
+                    <label>回転速度</label>
+                    <input type="range" class="slider" id="speedSlider" min="0" max="5" step="0.5" value="1">
+                </div>
+                <div class="control-row">
+                    <label>軌道表示</label>
+                    <input type="checkbox" id="orbitToggle" checked>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🚀 宇宙船制御</h3>
+                <button class="btn btn-primary" onclick="launchSpacecraft()" style="width: 100%; margin-bottom: 10px;">
+                    🚀 宇宙船発射
+                </button>
+                <button class="btn btn-secondary" onclick="enableWarpDrive()" style="width: 100%; margin-bottom: 10px;">
+                    ⚡ ワープドライブ
+                </button>
+                <button class="btn btn-success" onclick="randomMission()" style="width: 100%;">
+                    🎯 ランダムミッション
+                </button>
+            </div>
+
+            <div class="control-section">
+                <h3>🌌 環境設定</h3>
+                <button class="btn btn-primary" onclick="toggleAsteroids()" style="width: 100%; margin-bottom: 10px;">
+                    🌑 小惑星帯切替
+                </button>
+                <button class="btn btn-secondary" onclick="addNebula()" style="width: 100%; margin-bottom: 10px;">
+                    🌈 星雲追加
+                </button>
+                <button class="btn btn-success" onclick="addComet()" style="width: 100%;">
+                    ☄️ 彗星追加
+                </button>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div id="defaultInfo" class="planet-info active">
+                <h3>🌌 太陽系探査</h3>
+                <div class="info-stat">
+                    <span class="stat-label">現在位置</span>
+                    <span class="stat-value">地球軌道</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">燃料</span>
+                    <span class="stat-value">100%</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">速度</span>
+                    <span class="stat-value">11.2 km/s</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">発見済み天体</span>
+                    <span class="stat-value" id="discoveredCount">0/9</span>
+                </div>
+                <p style="margin-top: 15px; color: #ccc; font-size: 0.9em;">
+                    惑星をクリックして詳細情報を表示できます。宇宙船を発射して探査ミッションを開始しましょう。
+                </p>
+            </div>
+
+            <!-- 各惑星の情報パネル -->
+            <div id="sunInfo" class="planet-info">
+                <h3>☀️ 太陽</h3>
+                <div class="info-stat">
+                    <span class="stat-label">分類</span>
+                    <span class="stat-value">G型主系列星</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">直径</span>
+                    <span class="stat-value">1,392,700 km</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">表面温度</span>
+                    <span class="stat-value">5,778 K</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">年齢</span>
+                    <span class="stat-value">46億年</span>
+                </div>
+            </div>
+
+            <div id="earthInfo" class="planet-info">
+                <h3>🌍 地球</h3>
+                <div class="info-stat">
+                    <span class="stat-label">直径</span>
+                    <span class="stat-value">12,756 km</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">公転周期</span>
+                    <span class="stat-value">365.25 日</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">平均気温</span>
+                    <span class="stat-value">15°C</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">大気</span>
+                    <span class="stat-value">78% N₂, 21% O₂</span>
+                </div>
+            </div>
+
+            <div id="marsInfo" class="planet-info">
+                <h3>🔴 火星</h3>
+                <div class="info-stat">
+                    <span class="stat-label">直径</span>
+                    <span class="stat-value">6,792 km</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">公転周期</span>
+                    <span class="stat-value">687 日</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">平均気温</span>
+                    <span class="stat-value">-80°C</span>
+                </div>
+                <div class="info-stat">
+                    <span class="stat-label">大気</span>
+                    <span class="stat-value">95% CO₂</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mission-panel">
+            <div class="mission-status">
+                <div class="mission-title" id="missionTitle">ミッション待機中</div>
+                <div class="mission-progress">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div id="missionDescription">宇宙船を発射してミッションを開始してください</div>
+            </div>
+            <div class="mission-controls">
+                <button class="btn btn-primary" onclick="startMission()">📡 ミッション開始</button>
+                <button class="btn btn-secondary" onclick="abortMission()">🚫 ミッション中止</button>
+                <button class="btn btn-success" onclick="completeMission()">✅ ミッション完了</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let solarSystem = [];
+        let spacecraft = null;
+        let currentMission = null;
+        let discoveredPlanets = new Set();
+        let animationSpeed = 1;
+        let zoomLevel = 1;
+        let showOrbits = true;
+        let asteroidBelt = [];
+        let nebulae = [];
+        let comets = [];
+
+        // 惑星データ
+        const planetData = [
+            { name: 'sun', displayName: '太陽', size: 60, distance: 0, speed: 0, color: 'planet-sun', info: 'sunInfo' },
+            { name: 'mercury', displayName: '水星', size: 8, distance: 80, speed: 4.7, color: 'planet-mercury', info: 'mercuryInfo' },
+            { name: 'venus', displayName: '金星', size: 12, distance: 120, speed: 3.5, color: 'planet-venus', info: 'venusInfo' },
+            { name: 'earth', displayName: '地球', size: 14, distance: 160, speed: 3.0, color: 'planet-earth', info: 'earthInfo' },
+            { name: 'mars', displayName: '火星', size: 10, distance: 200, speed: 2.4, color: 'planet-mars', info: 'marsInfo' },
+            { name: 'jupiter', displayName: '木星', size: 35, distance: 280, speed: 1.3, color: 'planet-jupiter', info: 'jupiterInfo' },
+            { name: 'saturn', displayName: '土星', size: 30, distance: 360, speed: 1.0, color: 'planet-saturn', info: 'saturnInfo' },
+            { name: 'uranus', displayName: '天王星', size: 18, distance: 440, speed: 0.7, color: 'planet-uranus', info: 'uranusInfo' },
+            { name: 'neptune', displayName: '海王星', size: 16, distance: 520, speed: 0.5, color: 'planet-neptune', info: 'neptuneInfo' }
+        ];
+
+        // ミッションデータ
+        const missions = [
+            { name: '火星探査ミッション', target: 'mars', duration: 5000, description: '火星表面の地質調査を実施' },
+            { name: '木星大気観測', target: 'jupiter', duration: 7000, description: '木星の大気組成を分析' },
+            { name: '土星リング調査', target: 'saturn', duration: 6000, description: '土星の環の構造を詳細観測' },
+            { name: '小惑星帯探査', target: 'asteroid', duration: 4000, description: '小惑星の成分分析' },
+            { name: '彗星近接観測', target: 'comet', duration: 3000, description: '彗星の核の組成調査' }
+        ];
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeStars();
+            initializeSolarSystem();
+            initializeSpacecraft();
+            startAnimation();
+            setupEventListeners();
+        });
+
+        function initializeStars() {
+            const starsBg = document.getElementById('starsBg');
+            for (let i = 0; i < 200; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = star.style.height = (Math.random() * 3 + 1) + 'px';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsBg.appendChild(star);
+            }
+        }
+
+        function initializeSolarSystem() {
+            const canvas = document.getElementById('spaceCanvas');
+            const centerX = canvas.offsetWidth / 2;
+            const centerY = canvas.offsetHeight / 2;
+
+            planetData.forEach((planet, index) => {
+                // 軌道線を作成
+                if (planet.distance > 0 && showOrbits) {
+                    const orbit = document.createElement('div');
+                    orbit.className = 'orbit';
+                    orbit.style.width = orbit.style.height = (planet.distance * 2 * zoomLevel) + 'px';
+                    orbit.style.left = (centerX - planet.distance * zoomLevel) + 'px';
+                    orbit.style.top = (centerY - planet.distance * zoomLevel) + 'px';
+                    orbit.id = `orbit-${planet.name}`;
+                    canvas.appendChild(orbit);
+                }
+
+                // 惑星を作成
+                const planetElement = document.createElement('div');
+                planetElement.className = `planet ${planet.color} fade-in`;
+                planetElement.style.width = planetElement.style.height = (planet.size * zoomLevel) + 'px';
+                planetElement.style.animationDelay = (index * 0.2) + 's';
+                planetElement.id = planet.name;
+                
+                // 初期位置設定
+                const angle = Math.random() * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * planet.distance * zoomLevel - (planet.size * zoomLevel) / 2;
+                const y = centerY + Math.sin(angle) * planet.distance * zoomLevel - (planet.size * zoomLevel) / 2;
+                
+                planetElement.style.left = x + 'px';
+                planetElement.style.top = y + 'px';
+                
+                planetElement.onclick = () => selectPlanet(planet);
+                planetElement.dataset.angle = angle;
+                planetElement.dataset.planet = JSON.stringify(planet);
+                
+                canvas.appendChild(planetElement);
+                solarSystem.push(planetElement);
+            });
+        }
+
+        function initializeSpacecraft() {
+            const canvas = document.getElementById('spaceCanvas');
+            spacecraft = document.createElement('div');
+            spacecraft.className = 'spacecraft';
+            spacecraft.style.left = (canvas.offsetWidth / 2 - 15) + 'px';
+            spacecraft.style.top = (canvas.offsetHeight / 2 + 80) + 'px'; // 地球付近
+            canvas.appendChild(spacecraft);
+        }
+
+        function startAnimation() {
+            setInterval(() => {
+                updatePlanetPositions();
+                updateAsteroids();
+                updateNebulae();
+                updateComets();
+            }, 50);
+        }
+
+        function updatePlanetPositions() {
+            const canvas = document.getElementById('spaceCanvas');
+            const centerX = canvas.offsetWidth / 2;
+            const centerY = canvas.offsetHeight / 2;
+
+            solarSystem.forEach(planetElement => {
+                const planet = JSON.parse(planetElement.dataset.planet);
+                if (planet.distance === 0) return; // 太陽は動かない
+
+                let currentAngle = parseFloat(planetElement.dataset.angle);
+                currentAngle += (planet.speed * animationSpeed) * 0.01;
+                planetElement.dataset.angle = currentAngle;
+
+                const x = centerX + Math.cos(currentAngle) * planet.distance * zoomLevel - (planet.size * zoomLevel) / 2;
+                const y = centerY + Math.sin(currentAngle) * planet.distance * zoomLevel - (planet.size * zoomLevel) / 2;
+
+                planetElement.style.left = x + 'px';
+                planetElement.style.top = y + 'px';
+            });
+        }
+
+        function selectPlanet(planet) {
+            // 全ての情報パネルを非表示
+            document.querySelectorAll('.planet-info').forEach(panel => {
+                panel.classList.remove('active');
+            });
+
+            // 選択した惑星の情報を表示
+            const infoPanel = document.getElementById(planet.info) || document.getElementById('defaultInfo');
+            infoPanel.classList.add('active');
+
+            // 発見済み惑星に追加
+            discoveredPlanets.add(planet.name);
+            updateDiscoveredCount();
+
+            // 宇宙船を惑星に移動
+            moveSpacecraftToPlanet(planet.name);
+            
+            showNotification(`${planet.displayName}を選択しました`, 'success');
+        }
+
+        function moveSpacecraftToPlanet(planetName) {
+            const planetElement = document.getElementById(planetName);
+            if (!planetElement) return;
+
+            spacecraft.classList.add('moving');
+            
+            setTimeout(() => {
+                const planetRect = planetElement.getBoundingClientRect();
+                const canvasRect = document.getElementById('spaceCanvas').getBoundingClientRect();
+                
+                spacecraft.style.left = (planetRect.left - canvasRect.left + planetRect.width / 2 - 15) + 'px';
+                spacecraft.style.top = (planetRect.top - canvasRect.top + planetRect.height + 20) + 'px';
+                
+                setTimeout(() => {
+                    spacecraft.classList.remove('moving');
+                }, 300);
+            }, 100);
+        }
+
+        function launchSpacecraft() {
+            spacecraft.classList.add('moving');
+            showNotification('宇宙船を発射しました！', 'success');
+            
+            // ランダムな方向に移動
+            const canvas = document.getElementById('spaceCanvas');
+            const randomX = Math.random() * (canvas.offsetWidth - 60) + 30;
+            const randomY = Math.random() * (canvas.offsetHeight - 60) + 30;
+            
+            setTimeout(() => {
+                spacecraft.style.left = randomX + 'px';
+                spacecraft.style.top = randomY + 'px';
+            }, 500);
+            
+            setTimeout(() => {
+                spacecraft.classList.remove('moving');
+            }, 2000);
+        }
+
+        function enableWarpDrive() {
+            document.getElementById('spaceCanvas').classList.add('warp-effect');
+            showNotification('ワープドライブ開始！', 'info');
+            
+            setTimeout(() => {
+                document.getElementById('spaceCanvas').classList.remove('warp-effect');
+                launchSpacecraft();
+                showNotification('ワープ完了', 'success');
+            }, 1000);
+        }
+
+        function randomMission() {
+            const mission = missions[Math.floor(Math.random() * missions.length)];
+            currentMission = mission;
+            
+            document.getElementById('missionTitle').textContent = mission.name;
+            document.getElementById('missionDescription').textContent = mission.description;
+            
+            showNotification(`新しいミッション: ${mission.name}`, 'info');
+        }
+
+        function startMission() {
+            if (!currentMission) {
+                randomMission();
+            }
+            
+            const progressBar = document.getElementById('progressBar');
+            let progress = 0;
+            
+            const interval = setInterval(() => {
+                progress += 2;
+                progressBar.style.width = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    showNotification('ミッション完了！', 'success');
+                    currentMission = null;
+                    document.getElementById('missionTitle').textContent = 'ミッション待機中';
+                    document.getElementById('missionDescription').textContent = '新しいミッションを選択してください';
+                    progressBar.style.width = '0%';
+                }
+            }, currentMission ? currentMission.duration / 50 : 100);
+        }
+
+        function abortMission() {
+            currentMission = null;
+            document.getElementById('missionTitle').textContent = 'ミッション中止';
+            document.getElementById('missionDescription').textContent = 'ミッションが中止されました';
+            document.getElementById('progressBar').style.width = '0%';
+            showNotification('ミッションを中止しました', 'warning');
+        }
+
+        function completeMission() {
+            if (currentMission) {
+                document.getElementById('progressBar').style.width = '100%';
+                showNotification(`${currentMission.name} 完了！`, 'success');
+                setTimeout(() => {
+                    currentMission = null;
+                    document.getElementById('missionTitle').textContent = 'ミッション完了';
+                    document.getElementById('missionDescription').textContent = '次のミッションを選択してください';
+                    document.getElementById('progressBar').style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        function toggleAsteroids() {
+            if (asteroidBelt.length === 0) {
+                createAsteroidBelt();
+                showNotification('小惑星帯を表示しました', 'info');
+            } else {
+                asteroidBelt.forEach(asteroid => asteroid.remove());
+                asteroidBelt = [];
+                showNotification('小惑星帯を非表示にしました', 'info');
+            }
+        }
+
+        function createAsteroidBelt() {
+            const canvas = document.getElementById('spaceCanvas');
+            const centerX = canvas.offsetWidth / 2;
+            const centerY = canvas.offsetHeight / 2;
+            
+            for (let i = 0; i < 30; i++) {
+                const asteroid = document.createElement('div');
+                asteroid.className = 'asteroid';
+                const size = Math.random() * 8 + 3;
+                asteroid.style.width = asteroid.style.height = size + 'px';
+                
+                const distance = 240 + Math.random() * 40; // 火星と木星の間
+                const angle = Math.random() * Math.PI * 2;
+                
+                asteroid.style.left = (centerX + Math.cos(angle) * distance - size / 2) + 'px';
+                asteroid.style.top = (centerY + Math.sin(angle) * distance - size / 2) + 'px';
+                asteroid.style.animationDelay = Math.random() * 8 + 's';
+                
+                canvas.appendChild(asteroid);
+                asteroidBelt.push(asteroid);
+            }
+        }
+
+        function addNebula() {
+            const canvas = document.getElementById('spaceCanvas');
+            const nebula = document.createElement('div');
+            nebula.className = 'nebula';
+            
+            const size = Math.random() * 200 + 100;
+            nebula.style.width = nebula.style.height = size + 'px';
+            nebula.style.left = Math.random() * (canvas.offsetWidth - size) + 'px';
+            nebula.style.top = Math.random() * (canvas.offsetHeight - size) + 'px';
+            nebula.style.animationDelay = Math.random() * 6 + 's';
+            
+            canvas.appendChild(nebula);
+            nebulae.push(nebula);
+            
+            setTimeout(() => {
+                nebula.remove();
+                const index = nebulae.indexOf(nebula);
+                if (index > -1) nebulae.splice(index, 1);
+            }, 10000);
+            
+            showNotification('星雲が出現しました', 'info');
+        }
+
+        function addComet() {
+            const canvas = document.getElementById('spaceCanvas');
+            const comet = document.createElement('div');
+            comet.className = 'comet';
+            
+            // 画面外から開始
+            comet.style.left = '-10px';
+            comet.style.top = Math.random() * canvas.offsetHeight + 'px';
+            
+            canvas.appendChild(comet);
+            comets.push(comet);
+            
+            // 彗星を移動
+            let position = -10;
+            const interval = setInterval(() => {
+                position += 3;
+                comet.style.left = position + 'px';
+                
+                if (position > canvas.offsetWidth + 50) {
+                    clearInterval(interval);
+                    comet.remove();
+                    const index = comets.indexOf(comet);
+                    if (index > -1) comets.splice(index, 1);
+                }
+            }, 50);
+            
+            showNotification('彗星が接近中です', 'info');
+        }
+
+        function updateAsteroids() {
+            // 小惑星の軌道更新
+            asteroidBelt.forEach(asteroid => {
+                const currentRotation = asteroid.style.transform || 'rotate(0deg)';
+                const currentAngle = parseFloat(currentRotation.match(/(-?\d+\.?\d*)/)[0]);
+                asteroid.style.transform = `rotate(${currentAngle + animationSpeed}deg)`;
+            });
+        }
+
+        function updateNebulae() {
+            // 星雲のパルス更新
+            nebulae.forEach(nebula => {
+                // CSS アニメーションで処理済み
+            });
+        }
+
+        function updateComets() {
+            // 彗星の移動は addComet() で処理済み
+        }
+
+        function updateDiscoveredCount() {
+            document.getElementById('discoveredCount').textContent = `${discoveredPlanets.size}/9`;
+        }
+
+        function setupEventListeners() {
+            // ズームスライダー
+            document.getElementById('zoomSlider').addEventListener('input', function() {
+                zoomLevel = parseFloat(this.value);
+                updateSolarSystemScale();
+            });
+
+            // 速度スライダー
+            document.getElementById('speedSlider').addEventListener('input', function() {
+                animationSpeed = parseFloat(this.value);
+            });
+
+            // 軌道表示切替
+            document.getElementById('orbitToggle').addEventListener('change', function() {
+                showOrbits = this.checked;
+                toggleOrbits();
+            });
+
+            // キーボードショートカット
+            document.addEventListener('keydown', function(e) {
+                switch(e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        launchSpacecraft();
+                        break;
+                    case 'w':
+                        enableWarpDrive();
+                        break;
+                    case 'm':
+                        randomMission();
+                        break;
+                    case 'a':
+                        toggleAsteroids();
+                        break;
+                    case 'n':
+                        addNebula();
+                        break;
+                    case 'c':
+                        addComet();
+                        break;
+                }
+            });
+        }
+
+        function updateSolarSystemScale() {
+            // 全ての惑星と軌道のスケールを更新
+            document.querySelectorAll('.planet').forEach(planet => {
+                const planetData = JSON.parse(planet.dataset.planet);
+                planet.style.width = planet.style.height = (planetData.size * zoomLevel) + 'px';
+            });
+
+            document.querySelectorAll('.orbit').forEach(orbit => {
+                const planetName = orbit.id.replace('orbit-', '');
+                const planet = planetData.find(p => p.name === planetName);
+                if (planet) {
+                    orbit.style.width = orbit.style.height = (planet.distance * 2 * zoomLevel) + 'px';
+                    const canvas = document.getElementById('spaceCanvas');
+                    const centerX = canvas.offsetWidth / 2;
+                    const centerY = canvas.offsetHeight / 2;
+                    orbit.style.left = (centerX - planet.distance * zoomLevel) + 'px';
+                    orbit.style.top = (centerY - planet.distance * zoomLevel) + 'px';
+                }
+            });
+        }
+
+        function toggleOrbits() {
+            document.querySelectorAll('.orbit').forEach(orbit => {
+                orbit.style.display = showOrbits ? 'block' : 'none';
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'linear-gradient(45deg, #4ecdc4, #44a08d)' : 
+                           type === 'warning' ? 'linear-gradient(45deg, #ff9800, #f57c00)' : 
+                           'linear-gradient(45deg, #00bfff, #0080ff)'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+                z-index: 1000;
+                animation: slideInRight 0.3s ease;
+                max-width: 300px;
+                font-weight: bold;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // CSS アニメーションを動的に追加
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
