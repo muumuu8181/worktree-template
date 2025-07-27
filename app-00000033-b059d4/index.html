@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷路生成&解決ゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            color: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            padding: 10px;
+        }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-right: 15px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            z-index: 10;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+            50% { filter: hue-rotate(90deg) brightness(1.2); }
+        }
+
+        .maze-container {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #mazeCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 13px;
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            z-index: 10;
+            min-width: 200px;
+        }
+
+        .controls {
+            width: 340px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+        }
+
+        .control-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: #667eea;
+            text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            margin: 3px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #56ab2f, #a8e6cf);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(86, 171, 47, 0.3);
+        }
+
+        button.success:hover {
+            box-shadow: 0 6px 25px rgba(86, 171, 47, 0.5);
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        button.danger:hover {
+            box-shadow: 0 6px 25px rgba(255, 107, 107, 0.5);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .difficulty-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .difficulty-btn {
+            padding: 8px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .difficulty-btn.active {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: #fff;
+        }
+
+        .stats-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .slider-container {
+            margin: 12px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #667eea;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(102, 126, 234, 0.2);
+            outline: none;
+            border-radius: 3px;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        .algorithm-info {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .key-controls {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+        }
+
+        .key-controls h4 {
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+
+        .key-controls div {
+            font-size: 11px;
+            margin-bottom: 3px;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .main-area {
+                margin-right: 0;
+                margin-bottom: 10px;
+                height: 60vh;
+            }
+
+            .controls {
+                width: 100%;
+                max-height: 40vh;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        .animation-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .speed-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .speed-btn {
+            flex: 1;
+            padding: 5px;
+            font-size: 10px;
+        }
+
+        .maze-info {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            line-height: 1.3;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-area">
+            <header>
+                <h1>🏛️ 迷路生成&解決ゲーム</h1>
+                <p>DFS生成 × A*解法による高速迷路チャレンジ</p>
+            </header>
+
+            <div class="maze-container">
+                <canvas id="mazeCanvas"></canvas>
+                
+                <div class="game-overlay" id="gameOverlay">
+                    <div><strong>レベル:</strong> <span id="currentLevel">1</span>/10</div>
+                    <div><strong>サイズ:</strong> <span id="mazeSize">15x15</span></div>
+                    <div><strong>生成時間:</strong> <span id="generationTime">0ms</span></div>
+                    <div><strong>解決時間:</strong> <span id="solveTime">0ms</span></div>
+                    <div><strong>ステップ数:</strong> <span id="stepCount">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-section">
+                <h3>ゲーム制御</h3>
+                
+                <div class="stats-display">
+                    <div class="stat-card">
+                        <div class="stat-value" id="currentLevelStat">1</div>
+                        <div class="stat-label">現在レベル</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="bestTime">--</div>
+                        <div class="stat-label">最速タイム</div>
+                    </div>
+                </div>
+
+                <button onclick="generateNewMaze()" id="generateBtn">🏗️ 新しい迷路生成</button>
+                <button onclick="solveMaze()" id="solveBtn" class="success">🧠 自動解決</button>
+                <button onclick="resetMaze()" class="danger">🔄 リセット</button>
+            </div>
+
+            <div class="control-section">
+                <h3>難易度設定</h3>
+                <div class="difficulty-selector">
+                    <button class="difficulty-btn" onclick="setLevel(1)">Lv.1 (15x15)</button>
+                    <button class="difficulty-btn" onclick="setLevel(2)">Lv.2 (20x20)</button>
+                    <button class="difficulty-btn" onclick="setLevel(3)">Lv.3 (25x25)</button>
+                    <button class="difficulty-btn" onclick="setLevel(4)">Lv.4 (30x30)</button>
+                    <button class="difficulty-btn" onclick="setLevel(5)">Lv.5 (35x35)</button>
+                    <button class="difficulty-btn" onclick="setLevel(6)">Lv.6 (40x40)</button>
+                    <button class="difficulty-btn" onclick="setLevel(7)">Lv.7 (45x45)</button>
+                    <button class="difficulty-btn" onclick="setLevel(8)">Lv.8 (50x50)</button>
+                    <button class="difficulty-btn" onclick="setLevel(9)">Lv.9 (60x60)</button>
+                    <button class="difficulty-btn" onclick="setLevel(10)">Lv.10 (80x80)</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>表示設定</h3>
+                
+                <div class="slider-container">
+                    <label>
+                        セルサイズ: 
+                        <span id="cellSizeValue">8</span>px
+                    </label>
+                    <input type="range" id="cellSizeSlider" min="4" max="16" value="8">
+                </div>
+
+                <div class="slider-container">
+                    <label>
+                        アニメーション速度: 
+                        <span id="animSpeedValue">50</span>ms
+                    </label>
+                    <input type="range" id="animSpeedSlider" min="1" max="200" value="50">
+                </div>
+
+                <div class="animation-controls">
+                    <button onclick="toggleGenerationAnimation()" id="genAnimBtn">生成アニメON</button>
+                    <button onclick="toggleSolveAnimation()" id="solveAnimBtn">解決アニメON</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>手動プレイ</h3>
+                <button onclick="startManualPlay()" id="playBtn">🎮 手動でプレイ</button>
+                <button onclick="showHint()" id="hintBtn">💡 ヒント表示</button>
+                
+                <div class="key-controls">
+                    <h4>キーボード操作</h4>
+                    <div>↑↓←→ : 移動</div>
+                    <div>H : ヒント表示</div>
+                    <div>R : リセット</div>
+                    <div>Space : 自動解決</div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>生成進捗</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText">待機中...</div>
+            </div>
+
+            <div class="algorithm-info" id="algorithmInfo">
+                <strong>アルゴリズム情報:</strong><br>
+                生成: DFS (深度優先探索)<br>
+                解決: A* (最短経路探索)<br>
+                複雑度: O(n²) 時間・空間<br>
+                パフォーマンス: ≤500ms目標
+            </div>
+
+            <div class="maze-info" id="mazeInfo">
+                <strong>迷路統計:</strong><br>
+                総セル数: 0<br>
+                壁セル数: 0<br>
+                通路セル数: 0<br>
+                分岐点数: 0<br>
+                最短経路長: 0
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
