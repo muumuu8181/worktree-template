@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 リアルタイム言語学習・翻訳システム</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .language-hub {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            background: linear-gradient(45deg, #667eea, #f093fb);
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .language-selector {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 15px;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .lang-option {
+            background: linear-gradient(45deg, rgba(102,126,234,0.1), rgba(240,147,251,0.1));
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .lang-option:hover {
+            background: linear-gradient(45deg, rgba(102,126,234,0.2), rgba(240,147,251,0.2));
+            transform: translateY(-2px);
+        }
+
+        .lang-option.active {
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102,126,234,0.3);
+        }
+
+        .flag {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .swap-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(45deg, #667eea, #f093fb);
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .swap-btn:hover {
+            transform: rotate(180deg) scale(1.1);
+        }
+
+        .translator-section {
+            margin: 20px 0;
+        }
+
+        .text-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+
+        .text-area:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102,126,234,0.3);
+        }
+
+        .translate-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #667eea, #f093fb);
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 15px 0;
+        }
+
+        .translate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .lesson-card {
+            background: rgba(102,126,234,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .lesson-card:hover {
+            background: rgba(102,126,234,0.2);
+            transform: translateX(5px);
+        }
+
+        .lesson-card.active {
+            background: linear-gradient(45deg, rgba(102,126,234,0.3), rgba(240,147,251,0.3));
+            border: 2px solid #667eea;
+        }
+
+        .progress-section {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(102,126,234,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #f093fb);
+            border-radius: 10px;
+            transition: width 0.5s;
+        }
+
+        .vocab-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .vocab-card {
+            background: linear-gradient(45deg, rgba(240,147,251,0.1), rgba(102,126,234,0.1));
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .vocab-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .vocab-word {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .vocab-translation {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .pronunciation-section {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .speak-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 2em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+
+        .speak-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .speak-btn.speaking {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .quiz-section {
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .quiz-question {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .quiz-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .quiz-option.correct {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+        }
+
+        .quiz-option.incorrect {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, rgba(102,126,234,0.1), rgba(240,147,251,0.1));
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .chat-section {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .chat-message {
+            background: rgba(102,126,234,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 8px 0;
+        }
+
+        .chat-message.user {
+            background: linear-gradient(45deg, rgba(102,126,234,0.2), rgba(240,147,251,0.2));
+            margin-left: 20px;
+        }
+
+        .chat-message.ai {
+            background: rgba(240,147,251,0.1);
+            margin-right: 20px;
+        }
+
+        .voice-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #667eea, #f093fb);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .language-hub {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+            
+            .language-selector {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .vocab-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="language-hub">
+        <div class="header panel">
+            <h1>🌐 LANGUAGE MASTER</h1>
+            <p>AI搭載リアルタイム言語学習・翻訳システム</p>
+        </div>
+
+        <!-- Left Panel -->
+        <div class="panel fade-in">
+            <h2 style="color: #667eea; margin-bottom: 20px;">📚 学習メニュー</h2>
+            
+            <div class="lesson-card active">
+                <strong>🗣️ 会話練習</strong><br>
+                <small>日常会話の基本表現</small>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 75%;"></div>
+                </div>
+            </div>
+            
+            <div class="lesson-card">
+                <strong>📝 単語学習</strong><br>
+                <small>重要語彙1000語</small>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 45%;"></div>
+                </div>
+            </div>
+            
+            <div class="lesson-card">
+                <strong>🎧 リスニング</strong><br>
+                <small>音声認識トレーニング</small>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 60%;"></div>
+                </div>
+            </div>
+            
+            <div class="lesson-card">
+                <strong>✍️ ライティング</strong><br>
+                <small>文章作成練習</small>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 30%;"></div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">142</div>
+                    <div class="stat-label">学習日数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">1,847</div>
+                    <div class="stat-label">習得単語</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">89%</div>
+                    <div class="stat-label">正答率</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">Level 8</div>
+                    <div class="stat-label">現在レベル</div>
+                </div>
+            </div>
+
+            <div class="pronunciation-section">
+                <h3>🎤 発音練習</h3>
+                <div class="voice-controls">
+                    <button class="speak-btn" onclick="startListening()">🎙️</button>
+                    <button class="speak-btn" onclick="playPronunciation()">🔊</button>
+                </div>
+                <div id="pronunciationText">「こんにちは」を発音してみましょう</div>
+            </div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="panel fade-in">
+            <div class="language-selector">
+                <div class="lang-option active" onclick="selectLanguage('ja')">
+                    <div class="flag">🇯🇵</div>
+                    <div>日本語</div>
+                </div>
+                <button class="swap-btn" onclick="swapLanguages()">🔄</button>
+                <div class="lang-option" onclick="selectLanguage('en')">
+                    <div class="flag">🇺🇸</div>
+                    <div>English</div>
+                </div>
+            </div>
+
+            <div class="translator-section">
+                <h3 style="color: #667eea; margin-bottom: 15px;">💬 リアルタイム翻訳</h3>
+                <textarea class="text-area" id="inputText" placeholder="翻訳したいテキストを入力してください..."></textarea>
+                <button class="translate-btn" onclick="translateText()">🌟 翻訳実行</button>
+                <textarea class="text-area" id="outputText" placeholder="翻訳結果がここに表示されます..." readonly></textarea>
+            </div>
+
+            <div class="chat-section" id="chatSection">
+                <div class="chat-message ai">
+                    <strong>AI教師:</strong> こんにちは！今日は何を学習しますか？
+                </div>
+                <div class="chat-message user">
+                    <strong>あなた:</strong> 英語の日常会話を練習したいです
+                </div>
+                <div class="chat-message ai">
+                    <strong>AI教師:</strong> 素晴らしいですね！まずは挨拶から始めましょう。"How are you today?"
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="chatInput" placeholder="メッセージを入力..." style="flex: 1; padding: 10px; border-radius: 20px; border: 2px solid #ddd;">
+                <button class="btn" onclick="sendMessage()">送信</button>
+                <button class="btn" onclick="startVoiceChat()">🎤</button>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="panel fade-in">
+            <h2 style="color: #667eea; margin-bottom: 20px;">🎯 今日の単語</h2>
+            
+            <div class="vocab-grid" id="vocabGrid">
+                <div class="vocab-card" onclick="pronounceWord(this)">
+                    <div class="vocab-word">beautiful</div>
+                    <div class="vocab-translation">美しい</div>
+                </div>
+                <div class="vocab-card" onclick="pronounceWord(this)">
+                    <div class="vocab-word">important</div>
+                    <div class="vocab-translation">重要な</div>
+                </div>
+                <div class="vocab-card" onclick="pronounceWord(this)">
+                    <div class="vocab-word">different</div>
+                    <div class="vocab-translation">異なる</div>
+                </div>
+                <div class="vocab-card" onclick="pronounceWord(this)">
+                    <div class="vocab-word">excellent</div>
+                    <div class="vocab-translation">素晴らしい</div>
+                </div>
+                <div class="vocab-card" onclick="pronounceWord(this)">
+                    <div class="vocab-word">necessary</div>
+                    <div class="vocab-translation">必要な</div>
+                </div>
+                <div class="vocab-card" onclick="pronounceWord(this)">
+                    <div class="vocab-word">interesting</div>
+                    <div class="vocab-translation">興味深い</div>
+                </div>
+            </div>
+
+            <div class="quiz-section">
+                <h3>🧠 クイズタイム</h3>
+                <div class="quiz-question" id="quizQuestion">
+                    「美しい」を英語で言うと？
+                </div>
+                <div class="quiz-options">
+                    <button class="quiz-option" onclick="selectQuizAnswer(this, true)">beautiful</button>
+                    <button class="quiz-option" onclick="selectQuizAnswer(this, false)">handsome</button>
+                    <button class="quiz-option" onclick="selectQuizAnswer(this, false)">pretty</button>
+                    <button class="quiz-option" onclick="selectQuizAnswer(this, false)">nice</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">🎮 学習ゲーム</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <button class="btn" onclick="startWordGame()">🔤 単語ゲーム</button>
+                    <button class="btn" onclick="startMemoryGame()">🧩 記憶ゲーム</button>
+                    <button class="btn" onclick="startSpeedQuiz()">⚡ スピードクイズ</button>
+                    <button class="btn" onclick="startStoryMode()">📖 ストーリーモード</button>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="exportProgress()">📊 進捗エクスポート</button>
+                <button class="btn" onclick="shareAchievement()">🏆 成果シェア</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFromLang = 'ja';
+        let currentToLang = 'en';
+        let isListening = false;
+        let chatMessages = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateVocabulary();
+            generateNewQuiz();
+            setInterval(updateProgress, 10000);
+        });
+
+        function selectLanguage(lang) {
+            document.querySelectorAll('.lang-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            event.target.closest('.lang-option').classList.add('active');
+            
+            if (event.target.closest('.lang-option').onclick.toString().includes(lang)) {
+                currentFromLang = lang;
+            }
+            
+            showNotification(`言語を${lang === 'ja' ? '日本語' : '英語'}に変更しました`, 'info');
+        }
+
+        function swapLanguages() {
+            const temp = currentFromLang;
+            currentFromLang = currentToLang;
+            currentToLang = temp;
+            
+            // Swap active states
+            document.querySelectorAll('.lang-option').forEach(option => {
+                option.classList.toggle('active');
+            });
+            
+            showNotification('言語を入れ替えました', 'success');
+        }
+
+        function translateText() {
+            const inputText = document.getElementById('inputText').value;
+            const outputText = document.getElementById('outputText');
+            
+            if (!inputText.trim()) {
+                showNotification('翻訳するテキストを入力してください', 'error');
+                return;
+            }
+            
+            // Simulate translation
+            outputText.value = '翻訳中...';
+            
+            setTimeout(() => {
+                if (currentFromLang === 'ja') {
+                    outputText.value = simulateJapaneseToEnglish(inputText);
+                } else {
+                    outputText.value = simulateEnglishToJapanese(inputText);
+                }
+                showNotification('翻訳が完了しました', 'success');
+            }, 1500);
+        }
+
+        function simulateJapaneseToEnglish(text) {
+            const translations = {
+                'こんにちは': 'Hello',
+                'ありがとう': 'Thank you',
+                'さようなら': 'Goodbye',
+                'おはよう': 'Good morning',
+                '美しい': 'Beautiful',
+                '重要': 'Important',
+                '学習': 'Learning',
+                '翻訳': 'Translation'
+            };
+            
+            let result = text;
+            Object.keys(translations).forEach(jp => {
+                result = result.replace(new RegExp(jp, 'g'), translations[jp]);
+            });
+            
+            return result || 'Hello! How are you today?';
+        }
+
+        function simulateEnglishToJapanese(text) {
+            const translations = {
+                'hello': 'こんにちは',
+                'thank you': 'ありがとう',
+                'goodbye': 'さようなら',
+                'beautiful': '美しい',
+                'important': '重要',
+                'learning': '学習',
+                'translation': '翻訳'
+            };
+            
+            let result = text.toLowerCase();
+            Object.keys(translations).forEach(en => {
+                result = result.replace(new RegExp(en, 'g'), translations[en]);
+            });
+            
+            return result || 'こんにちは！今日はいかがですか？';
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addChatMessage('user', message);
+            input.value = '';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                const responses = [
+                    'とても良い質問ですね！もう少し詳しく教えてください。',
+                    'その表現は素晴らしいです！次はこの単語を使ってみましょう。',
+                    '発音がとても上手になりましたね！',
+                    'その文法の使い方は完璧です！'
+                ];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                addChatMessage('ai', randomResponse);
+            }, 1000);
+        }
+
+        function addChatMessage(sender, message) {
+            const chatSection = document.getElementById('chatSection');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            messageDiv.innerHTML = `<strong>${sender === 'user' ? 'あなた' : 'AI教師'}:</strong> ${message}`;
+            
+            chatSection.appendChild(messageDiv);
+            chatSection.scrollTop = chatSection.scrollHeight;
+        }
+
+        function startVoiceChat() {
+            showNotification('音声認識を開始しました', 'info');
+            // Simulate voice recognition
+            setTimeout(() => {
+                addChatMessage('user', '(音声入力) Hello, how are you?');
+                setTimeout(() => {
+                    addChatMessage('ai', 'Great! Your pronunciation is excellent!');
+                }, 1000);
+            }, 2000);
+        }
+
+        function pronounceWord(element) {
+            const word = element.querySelector('.vocab-word').textContent;
+            element.style.transform = 'scale(1.1)';
+            showNotification(`"${word}" を発音中...`, 'info');
+            
+            setTimeout(() => {
+                element.style.transform = 'scale(1)';
+            }, 500);
+        }
+
+        function selectQuizAnswer(element, isCorrect) {
+            document.querySelectorAll('.quiz-option').forEach(option => {
+                option.disabled = true;
+            });
+            
+            if (isCorrect) {
+                element.classList.add('correct');
+                showNotification('正解です！素晴らしい！', 'success');
+            } else {
+                element.classList.add('incorrect');
+                showNotification('不正解です。もう一度挑戦しましょう！', 'error');
+            }
+            
+            setTimeout(generateNewQuiz, 2000);
+        }
+
+        function generateNewQuiz() {
+            const quizzes = [
+                { question: '「ありがとう」を英語で言うと？', options: ['Thank you', 'Hello', 'Goodbye', 'Please'], correct: 0 },
+                { question: '「学習」を英語で言うと？', options: ['Study', 'Learning', 'Teaching', 'Reading'], correct: 1 },
+                { question: '「重要な」を英語で言うと？', options: ['Necessary', 'Important', 'Difficult', 'Easy'], correct: 1 }
+            ];
+            
+            const quiz = quizzes[Math.floor(Math.random() * quizzes.length)];
+            document.getElementById('quizQuestion').textContent = quiz.question;
+            
+            const optionsContainer = document.querySelector('.quiz-options');
+            optionsContainer.innerHTML = '';
+            
+            quiz.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'quiz-option';
+                button.textContent = option;
+                button.onclick = () => selectQuizAnswer(button, index === quiz.correct);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function startListening() {
+            isListening = !isListening;
+            const btn = event.target;
+            
+            if (isListening) {
+                btn.classList.add('speaking');
+                showNotification('🎤 音声認識開始...', 'info');
+            } else {
+                btn.classList.remove('speaking');
+                showNotification('🎤 音声認識停止', 'info');
+            }
+        }
+
+        function playPronunciation() {
+            showNotification('🔊 発音再生中...', 'info');
+            event.target.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                event.target.style.transform = 'scale(1)';
+            }, 500);
+        }
+
+        function updateVocabulary() {
+            const vocabWords = [
+                { word: 'challenge', translation: '挑戦' },
+                { word: 'opportunity', translation: '機会' },
+                { word: 'experience', translation: '経験' },
+                { word: 'knowledge', translation: '知識' },
+                { word: 'practice', translation: '練習' },
+                { word: 'progress', translation: '進歩' }
+            ];
+            
+            // Randomly update vocabulary every 30 seconds
+            setInterval(() => {
+                const randomWord = vocabWords[Math.floor(Math.random() * vocabWords.length)];
+                const cards = document.querySelectorAll('.vocab-card');
+                if (cards.length > 0) {
+                    const randomCard = cards[Math.floor(Math.random() * cards.length)];
+                    randomCard.querySelector('.vocab-word').textContent = randomWord.word;
+                    randomCard.querySelector('.vocab-translation').textContent = randomWord.translation;
+                    randomCard.classList.add('floating');
+                    setTimeout(() => randomCard.classList.remove('floating'), 3000);
+                }
+            }, 30000);
+        }
+
+        function updateProgress() {
+            // Simulate progress updates
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const currentWidth = parseInt(bar.style.width) || 0;
+                const newWidth = Math.min(100, currentWidth + Math.random() * 2);
+                bar.style.width = newWidth + '%';
+            });
+        }
+
+        function startWordGame() {
+            showNotification('🔤 単語ゲームを開始します！', 'success');
+        }
+
+        function startMemoryGame() {
+            showNotification('🧩 記憶ゲームを開始します！', 'success');
+        }
+
+        function startSpeedQuiz() {
+            showNotification('⚡ スピードクイズを開始します！', 'success');
+        }
+
+        function startStoryMode() {
+            showNotification('📖 ストーリーモードを開始します！', 'success');
+        }
+
+        function exportProgress() {
+            showNotification('📊 学習データをエクスポートしました', 'success');
+        }
+
+        function shareAchievement() {
+            showNotification('🏆 成果をシェアしました', 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'linear-gradient(45deg, #00b894, #00cec9)' : 
+                           type === 'error' ? 'linear-gradient(45deg, #e74c3c, #c0392b)' :
+                           'linear-gradient(45deg, #667eea, #f093fb)'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                font-weight: bold;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Add slide animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        translateText();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        swapLanguages();
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        sendMessage();
+                        break;
+                }
+            }
+        });
+
+        // Auto-focus chat input on Enter
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.id === 'chatInput') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
