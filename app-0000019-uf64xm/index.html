@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚗 インテリジェント車両管理・診断システム</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #1abc9c 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .vehicle-dashboard {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            background: linear-gradient(45deg, #2c3e50, #1abc9c);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .vehicle-status {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .status-card {
+            background: rgba(26,188,156,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid rgba(26,188,156,0.3);
+            transition: all 0.3s;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(26,188,156,0.3);
+        }
+
+        .status-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #1abc9c;
+            margin-bottom: 5px;
+        }
+
+        .status-label {
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        .speedometer {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #e74c3c 0deg 60deg,
+                #f39c12 60deg 120deg,
+                #f1c40f 120deg 180deg,
+                #2ecc71 180deg 240deg,
+                #3498db 240deg 300deg,
+                #9b59b6 300deg 360deg
+            );
+            margin: 20px auto;
+            position: relative;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .speedometer::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            background: #2c3e50;
+            border-radius: 50%;
+        }
+
+        .speed-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #1abc9c;
+        }
+
+        .speed-value {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .speed-unit {
+            font-size: 1em;
+            color: #ecf0f1;
+        }
+
+        .diagnostic-panel {
+            margin: 20px 0;
+        }
+
+        .diagnostic-item {
+            background: rgba(52,73,94,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .diagnostic-item:hover {
+            background: rgba(52,73,94,0.5);
+            transform: translateX(5px);
+        }
+
+        .diagnostic-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-ok {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .status-warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .status-error {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .fuel-gauge {
+            width: 100%;
+            height: 30px;
+            background: rgba(44,62,80,0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .fuel-level {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c 0%, #f39c12 30%, #2ecc71 70%);
+            border-radius: 15px;
+            transition: width 0.5s;
+            width: 65%;
+        }
+
+        .fuel-percentage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .maintenance-schedule {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .maintenance-item {
+            background: rgba(26,188,156,0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #1abc9c;
+            transition: all 0.3s;
+        }
+
+        .maintenance-item:hover {
+            background: rgba(26,188,156,0.2);
+            transform: translateX(5px);
+        }
+
+        .maintenance-due {
+            border-left-color: #e74c3c;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #1abc9c, #16a085);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(26,188,156,0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .trip-computer {
+            background: rgba(44,62,80,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .trip-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .trip-stat {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .trip-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #1abc9c;
+        }
+
+        .trip-label {
+            font-size: 0.8em;
+            color: #bdc3c7;
+        }
+
+        .warning-alerts {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            animation: alertPulse 2s infinite;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+        }
+
+        .alert-icon {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .gps-map {
+            background: rgba(52,73,94,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(45deg, #34495e, #2c3e50);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: #1abc9c;
+        }
+
+        .location-info {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .location-item {
+            background: rgba(26,188,156,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .tire-pressure {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .tire {
+            background: rgba(52,73,94,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+
+        .tire-visual {
+            width: 60px;
+            height: 60px;
+            background: #34495e;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            border: 4px solid #1abc9c;
+            position: relative;
+        }
+
+        .tire-visual::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            background: #2c3e50;
+            border-radius: 50%;
+        }
+
+        .tire-low {
+            border-color: #e74c3c;
+        }
+
+        .engine-temp {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 40%, #f1c40f 70%, #e74c3c 100%);
+            border-radius: 10px;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .temp-indicator {
+            position: absolute;
+            top: -5px;
+            left: 60%;
+            width: 4px;
+            height: 30px;
+            background: white;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .vehicle-dashboard {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+            
+            .vehicle-status {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .tire-pressure {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .rotating {
+            animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="vehicle-dashboard">
+        <div class="header panel">
+            <h1>🚗 VEHICLE CONTROL CENTER</h1>
+            <p>インテリジェント車両管理・診断システム</p>
+        </div>
+
+        <!-- Left Panel -->
+        <div class="panel fade-in">
+            <h2 style="color: #1abc9c; margin-bottom: 20px;">📊 車両ステータス</h2>
+            
+            <div class="speedometer">
+                <div class="speed-display">
+                    <div class="speed-value" id="speedValue">85</div>
+                    <div class="speed-unit">km/h</div>
+                </div>
+            </div>
+
+            <div class="vehicle-status">
+                <div class="status-card">
+                    <div class="status-value" id="engineRpm">2,850</div>
+                    <div class="status-label">エンジン回転数 (RPM)</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-value" id="fuelEconomy">12.5</div>
+                    <div class="status-label">燃費 (km/L)</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-value" id="odometer">87,432</div>
+                    <div class="status-label">総走行距離 (km)</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-value" id="batteryVoltage">12.6V</div>
+                    <div class="status-label">バッテリー電圧</div>
+                </div>
+            </div>
+
+            <div class="fuel-gauge">
+                <div class="fuel-level" id="fuelLevel"></div>
+                <div class="fuel-percentage">燃料残量: 65%</div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h4 style="color: #1abc9c; margin-bottom: 10px;">エンジン温度</h4>
+                <div class="engine-temp">
+                    <div class="temp-indicator"></div>
+                </div>
+                <div style="text-align: center; margin-top: 5px; font-size: 0.9em;">
+                    正常範囲 (89°C)
+                </div>
+            </div>
+
+            <div class="tire-pressure">
+                <div class="tire">
+                    <div class="tire-visual"></div>
+                    <div style="font-weight: bold;">前左</div>
+                    <div style="color: #1abc9c;">2.3 bar</div>
+                </div>
+                <div class="tire">
+                    <div class="tire-visual"></div>
+                    <div style="font-weight: bold;">前右</div>
+                    <div style="color: #1abc9c;">2.2 bar</div>
+                </div>
+                <div class="tire">
+                    <div class="tire-visual tire-low"></div>
+                    <div style="font-weight: bold;">後左</div>
+                    <div style="color: #e74c3c;">1.8 bar</div>
+                </div>
+                <div class="tire">
+                    <div class="tire-visual"></div>
+                    <div style="font-weight: bold;">後右</div>
+                    <div style="color: #1abc9c;">2.1 bar</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="panel fade-in">
+            <h2 style="color: #1abc9c; margin-bottom: 20px;">🔧 診断・制御パネル</h2>
+
+            <div class="diagnostic-panel">
+                <h3 style="margin-bottom: 15px;">システム診断</h3>
+                <div class="diagnostic-item">
+                    <div>
+                        <strong>🚗 エンジン システム</strong><br>
+                        <small>最終チェック: 2分前</small>
+                    </div>
+                    <div class="diagnostic-status status-ok">正常</div>
+                </div>
+                <div class="diagnostic-item">
+                    <div>
+                        <strong>🛞 ブレーキ システム</strong><br>
+                        <small>最終チェック: 5分前</small>
+                    </div>
+                    <div class="diagnostic-status status-ok">正常</div>
+                </div>
+                <div class="diagnostic-item">
+                    <div>
+                        <strong>🔋 バッテリー システム</strong><br>
+                        <small>最終チェック: 1分前</small>
+                    </div>
+                    <div class="diagnostic-status status-warning">注意</div>
+                </div>
+                <div class="diagnostic-item">
+                    <div>
+                        <strong>🌡️ 冷却 システム</strong><br>
+                        <small>最終チェック: 3分前</small>
+                    </div>
+                    <div class="diagnostic-status status-ok">正常</div>
+                </div>
+                <div class="diagnostic-item">
+                    <div>
+                        <strong>💨 排気 システム</strong><br>
+                        <small>最終チェック: 10分前</small>
+                    </div>
+                    <div class="diagnostic-status status-error">要点検</div>
+                </div>
+            </div>
+
+            <div class="control-buttons">
+                <button class="btn" onclick="startEngine()">🚗 エンジン始動</button>
+                <button class="btn btn-danger" onclick="stopEngine()">🛑 エンジン停止</button>
+                <button class="btn" onclick="lockVehicle()">🔒 車両ロック</button>
+                <button class="btn" onclick="unlockVehicle()">🔓 車両アンロック</button>
+                <button class="btn btn-warning" onclick="startDiagnostic()">🔧 診断開始</button>
+                <button class="btn" onclick="updateFirmware()">📲 ファームウェア更新</button>
+            </div>
+
+            <div class="trip-computer">
+                <h3 style="margin-bottom: 15px; color: #1abc9c;">🗺️ トリップコンピューター</h3>
+                <div class="trip-stats">
+                    <div class="trip-stat">
+                        <div class="trip-value" id="tripDistance">156.8</div>
+                        <div class="trip-label">今回走行距離 (km)</div>
+                    </div>
+                    <div class="trip-stat">
+                        <div class="trip-value" id="tripTime">2:34</div>
+                        <div class="trip-label">走行時間</div>
+                    </div>
+                    <div class="trip-stat">
+                        <div class="trip-value" id="avgSpeed">68</div>
+                        <div class="trip-label">平均速度 (km/h)</div>
+                    </div>
+                    <div class="trip-stat">
+                        <div class="trip-value" id="fuelConsumed">12.5L</div>
+                        <div class="trip-label">消費燃料</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn" onclick="resetTrip()">🔄 トリップリセット</button>
+                </div>
+            </div>
+
+            <div class="warning-alerts">
+                <h3 style="margin-bottom: 15px;">⚠️ 警告・アラート</h3>
+                <div class="alert-item">
+                    <div class="alert-icon">🔋</div>
+                    <div>バッテリー電圧が低下しています</div>
+                </div>
+                <div class="alert-item">
+                    <div class="alert-icon">🛞</div>
+                    <div>後左タイヤの空気圧が不足しています</div>
+                </div>
+                <div class="alert-item">
+                    <div class="alert-icon">💨</div>
+                    <div>排気システムの点検が必要です</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="panel fade-in">
+            <h2 style="color: #1abc9c; margin-bottom: 20px;">🗺️ ナビゲーション</h2>
+            
+            <div class="gps-map">
+                <div class="map-placeholder">🗺️</div>
+                <div class="location-info">
+                    <div class="location-item">
+                        <strong>現在地</strong><br>
+                        <small>東京都新宿区</small>
+                    </div>
+                    <div class="location-item">
+                        <strong>目的地</strong><br>
+                        <small>横浜市中華街</small>
+                    </div>
+                    <div class="location-item">
+                        <strong>残り距離</strong><br>
+                        <small>23.5 km</small>
+                    </div>
+                    <div class="location-item">
+                        <strong>到着予定</strong><br>
+                        <small>15:45</small>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #1abc9c; margin-bottom: 15px;">🔧 メンテナンス予定</h3>
+                <div class="maintenance-schedule">
+                    <div class="maintenance-item maintenance-due">
+                        <strong>🛞 タイヤ交換</strong><br>
+                        <small>期限: あと 500km または 2週間</small>
+                    </div>
+                    <div class="maintenance-item">
+                        <strong>🔧 定期点検</strong><br>
+                        <small>期限: あと 2,500km または 3ヶ月</small>
+                    </div>
+                    <div class="maintenance-item">
+                        <strong>🛢️ オイル交換</strong><br>
+                        <small>期限: あと 1,200km または 1ヶ月</small>
+                    </div>
+                    <div class="maintenance-item">
+                        <strong>🔋 バッテリー交換</strong><br>
+                        <small>期限: あと 8ヶ月</small>
+                    </div>
+                    <div class="maintenance-item">
+                        <strong>❄️ エアコンフィルター</strong><br>
+                        <small>期限: あと 6ヶ月</small>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #1abc9c; margin-bottom: 15px;">📊 走行統計</h3>
+                <div style="background: rgba(52,73,94,0.3); border-radius: 10px; padding: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; color: #1abc9c; font-weight: bold;">324</div>
+                            <div style="font-size: 0.8em; color: #bdc3c7;">今月走行距離 (km)</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; color: #1abc9c; font-weight: bold;">11.8</div>
+                            <div style="font-size: 0.8em; color: #bdc3c7;">平均燃費 (km/L)</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; color: #1abc9c; font-weight: bold;">18</div>
+                            <div style="font-size: 0.8em; color: #bdc3c7;">今月運転日数</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; color: #1abc9c; font-weight: bold;">¥24,560</div>
+                            <div style="font-size: 0.8em; color: #bdc3c7;">燃料代</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="exportData()">📊 データエクスポート</button>
+                <button class="btn" onclick="scheduleService()">📅 点検予約</button>
+                <button class="btn" onclick="emergencyCall()">🚨 緊急通報</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let engineRunning = false;
+        let vehicleLocked = true;
+        let diagnosticRunning = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateVehicleData();
+            setInterval(updateVehicleData, 3000);
+            setInterval(updateSpeed, 1000);
+        });
+
+        function updateVehicleData() {
+            // Simulate real-time vehicle data updates
+            if (engineRunning) {
+                const speed = document.getElementById('speedValue');
+                const rpm = document.getElementById('engineRpm');
+                const fuelEconomy = document.getElementById('fuelEconomy');
+                
+                if (speed) {
+                    const currentSpeed = parseInt(speed.textContent);
+                    const newSpeed = Math.max(0, currentSpeed + (Math.random() - 0.5) * 10);
+                    speed.textContent = Math.round(newSpeed);
+                }
+                
+                if (rpm) {
+                    const newRpm = 2000 + Math.random() * 2000;
+                    rpm.textContent = Math.round(newRpm).toLocaleString();
+                }
+                
+                if (fuelEconomy) {
+                    const newEconomy = 10 + Math.random() * 5;
+                    fuelEconomy.textContent = newEconomy.toFixed(1);
+                }
+            }
+        }
+
+        function updateSpeed() {
+            if (engineRunning) {
+                const speedometer = document.querySelector('.speedometer');
+                speedometer.style.transform = `rotate(${Math.random() * 10 - 5}deg)`;
+                setTimeout(() => {
+                    speedometer.style.transform = 'rotate(0deg)';
+                }, 200);
+            }
+        }
+
+        function startEngine() {
+            if (!engineRunning) {
+                engineRunning = true;
+                showNotification('🚗 エンジンを始動しました', 'success');
+                
+                // Start engine animation
+                const speedometer = document.querySelector('.speedometer');
+                speedometer.classList.add('rotating');
+                setTimeout(() => speedometer.classList.remove('rotating'), 2000);
+            } else {
+                showNotification('エンジンは既に動作中です', 'info');
+            }
+        }
+
+        function stopEngine() {
+            if (engineRunning) {
+                engineRunning = false;
+                document.getElementById('speedValue').textContent = '0';
+                document.getElementById('engineRpm').textContent = '0';
+                showNotification('🛑 エンジンを停止しました', 'info');
+            } else {
+                showNotification('エンジンは既に停止しています', 'info');
+            }
+        }
+
+        function lockVehicle() {
+            vehicleLocked = true;
+            showNotification('🔒 車両をロックしました', 'success');
+        }
+
+        function unlockVehicle() {
+            vehicleLocked = false;
+            showNotification('🔓 車両をアンロックしました', 'success');
+        }
+
+        function startDiagnostic() {
+            if (!diagnosticRunning) {
+                diagnosticRunning = true;
+                showNotification('🔧 車両診断を開始しています...', 'info');
+                
+                // Simulate diagnostic process
+                setTimeout(() => {
+                    const diagnosticItems = document.querySelectorAll('.diagnostic-item');
+                    diagnosticItems.forEach((item, index) => {
+                        setTimeout(() => {
+                            const status = item.querySelector('.diagnostic-status');
+                            status.textContent = '検査中...';
+                            status.className = 'diagnostic-status status-warning';
+                            
+                            setTimeout(() => {
+                                const results = ['正常', '正常', '注意', '正常', '要点検'];
+                                const classes = ['status-ok', 'status-ok', 'status-warning', 'status-ok', 'status-error'];
+                                status.textContent = results[index];
+                                status.className = `diagnostic-status ${classes[index]}`;
+                            }, 1000);
+                        }, index * 500);
+                    });
+                    
+                    setTimeout(() => {
+                        diagnosticRunning = false;
+                        showNotification('🔧 診断が完了しました', 'success');
+                    }, 5000);
+                }, 1000);
+            } else {
+                showNotification('診断は既に実行中です', 'info');
+            }
+        }
+
+        function updateFirmware() {
+            showNotification('📲 ファームウェア更新を開始しました', 'info');
+            
+            // Simulate firmware update
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                showNotification(`📲 更新中... ${progress}%`, 'info');
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    showNotification('📲 ファームウェア更新が完了しました', 'success');
+                }
+            }, 500);
+        }
+
+        function resetTrip() {
+            document.getElementById('tripDistance').textContent = '0.0';
+            document.getElementById('tripTime').textContent = '0:00';
+            document.getElementById('avgSpeed').textContent = '0';
+            document.getElementById('fuelConsumed').textContent = '0.0L';
+            showNotification('🔄 トリップデータをリセットしました', 'success');
+        }
+
+        function exportData() {
+            showNotification('📊 車両データをエクスポートしました', 'success');
+        }
+
+        function scheduleService() {
+            showNotification('📅 点検予約を設定しました', 'success');
+        }
+
+        function emergencyCall() {
+            showNotification('🚨 緊急通報センターに接続中...', 'error');
+            
+            setTimeout(() => {
+                showNotification('🚨 緊急通報が送信されました', 'error');
+            }, 2000);
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'linear-gradient(45deg, #2ecc71, #27ae60)' : 
+                           type === 'error' ? 'linear-gradient(45deg, #e74c3c, #c0392b)' :
+                           'linear-gradient(45deg, #3498db, #2980b9)'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                font-weight: bold;
+                max-width: 300px;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Add slide animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        if (engineRunning) {
+                            stopEngine();
+                        } else {
+                            startEngine();
+                        }
+                        break;
+                    case 'd':
+                        e.preventDefault();
+                        startDiagnostic();
+                        break;
+                    case 'l':
+                        e.preventDefault();
+                        if (vehicleLocked) {
+                            unlockVehicle();
+                        } else {
+                            lockVehicle();
+                        }
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        emergencyCall();
+                        break;
+                }
+            }
+        });
+
+        // Simulate fuel consumption
+        setInterval(() => {
+            if (engineRunning) {
+                const fuelLevel = document.getElementById('fuelLevel');
+                const currentWidth = parseInt(fuelLevel.style.width) || 65;
+                const newWidth = Math.max(0, currentWidth - 0.1);
+                fuelLevel.style.width = newWidth + '%';
+                
+                const percentage = document.querySelector('.fuel-percentage');
+                percentage.textContent = `燃料残量: ${Math.round(newWidth)}%`;
+                
+                if (newWidth < 20) {
+                    fuelLevel.style.background = 'linear-gradient(90deg, #e74c3c 0%, #c0392b 100%)';
+                }
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
