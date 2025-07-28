@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ベクトル場流線シミュレーター</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #141828;
+            --bg-tertiary: #1e2436;
+            --text-primary: #e8eaf0;
+            --text-secondary: #a8afc4;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #ff00aa;
+            --accent-gradient: linear-gradient(135deg, #00d4ff, #ff00aa);
+            --trail-color-1: #00ffff;
+            --trail-color-2: #ff00ff;
+            --trail-color-3: #ffff00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .control-panel {
+            width: 320px;
+            background: var(--bg-secondary);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid var(--bg-tertiary);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--accent-primary);
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="range"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"] {
+            padding: 4px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+        }
+
+        .slider-value {
+            display: inline-block;
+            margin-left: 10px;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .visualization-area {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(ellipse at center, #0a0e1a 0%, #050814 100%);
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .stats-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(20, 24, 40, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--bg-tertiary);
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .preset-button {
+            padding: 8px;
+            font-size: 0.85rem;
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            color: var(--text-primary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .preset-button:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-primary);
+        }
+
+        .preset-button.active {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .custom-function-area {
+            margin-top: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .view-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(20, 24, 40, 0.9);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--bg-tertiary);
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-button {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-button:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .view-button.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .control-panel {
+                width: 100%;
+                height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid var(--bg-tertiary);
+            }
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 26, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--bg-tertiary);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .color-picker-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="control-panel">
+            <h1>ベクトル場流線シミュレーター</h1>
+            
+            <div class="section">
+                <h2 class="section-title">🎯 プリセット場</h2>
+                <div class="preset-grid">
+                    <button class="preset-button active" onclick="setPreset('magnetic')">磁場</button>
+                    <button class="preset-button" onclick="setPreset('fluid')">流体力学</button>
+                    <button class="preset-button" onclick="setPreset('vortex')">渦流</button>
+                    <button class="preset-button" onclick="setPreset('source')">源泉・吸収</button>
+                    <button class="preset-button" onclick="setPreset('tornado')">トルネード</button>
+                    <button class="preset-button" onclick="setPreset('electric')">電場</button>
+                    <button class="preset-button" onclick="setPreset('dipole')">双極子場</button>
+                    <button class="preset-button" onclick="setPreset('chaos')">カオス場</button>
+                    <button class="preset-button" onclick="setPreset('laminar')">層流</button>
+                    <button class="preset-button" onclick="setPreset('turbulent')">乱流</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">⚙️ パラメータ調整</h2>
+                <div class="control-group">
+                    <label>場の強度: <span class="slider-value" id="fieldStrengthValue">1.0</span></label>
+                    <input type="range" id="fieldStrength" min="0.1" max="5" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label>渦巻き係数: <span class="slider-value" id="vortexStrengthValue">1.0</span></label>
+                    <input type="range" id="vortexStrength" min="0" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label>時間ステップ: <span class="slider-value" id="timeStepValue">0.01</span></label>
+                    <input type="range" id="timeStep" min="0.001" max="0.1" step="0.001" value="0.01">
+                </div>
+                <div class="control-group">
+                    <label>アニメーション速度: <span class="slider-value" id="animSpeedValue">1.0</span></label>
+                    <input type="range" id="animSpeed" min="0.1" max="5" step="0.1" value="1">
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">🎨 粒子設定</h2>
+                <div class="control-group">
+                    <label>粒子数: <span class="slider-value" id="particleCountValue">20</span></label>
+                    <input type="range" id="particleCount" min="1" max="50" step="1" value="20">
+                </div>
+                <div class="control-group">
+                    <label>トレイル長: <span class="slider-value" id="trailLengthValue">100</span></label>
+                    <input type="range" id="trailLength" min="10" max="500" step="10" value="100">
+                </div>
+                <div class="control-group">
+                    <label>粒子色:</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="particleColor1" class="color-picker" value="#00ffff">
+                        <input type="color" id="particleColor2" class="color-picker" value="#ff00ff">
+                        <input type="color" id="particleColor3" class="color-picker" value="#ffff00">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">🎮 コントロール</h2>
+                <div class="button-group">
+                    <button onclick="startSimulation()">▶️ 開始</button>
+                    <button onclick="pauseSimulation()">⏸️ 一時停止</button>
+                </div>
+                <div class="button-group">
+                    <button onclick="resetSimulation()">🔄 リセット</button>
+                    <button onclick="randomizeParticles()">🎲 ランダム配置</button>
+                </div>
+                <button onclick="takeSnapshot()">📸 スナップショット</button>
+                <button onclick="toggleVectorField()">🔲 ベクトル場表示</button>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">🔧 カスタム関数</h2>
+                <textarea id="customFunction" placeholder="// x, y, z を使用してベクトル場を定義
+// 例: return { x: -y, y: x, z: 0 };"></textarea>
+                <button onclick="applyCustomFunction()">カスタム関数適用</button>
+            </div>
+        </div>
+
+        <div class="visualization-area">
+            <canvas id="canvas"></canvas>
+            
+            <div class="stats-overlay">
+                <div class="stat-item">
+                    <span class="stat-label">粒子数:</span>
+                    <span class="stat-value" id="statParticles">20</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">FPS:</span>
+                    <span class="stat-value" id="statFPS">60</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">シミュレーション時間:</span>
+                    <span class="stat-value" id="statTime">0.00s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">精度誤差:</span>
+                    <span class="stat-value" id="statError"><0.01</span>
+                </div>
+            </div>
+
+            <div class="view-controls">
+                <button class="view-button active" onclick="setView('2d')">2D</button>
+                <button class="view-button" onclick="setView('3d')">3D</button>
+                <button class="view-button" onclick="setView('iso')">アイソメトリック</button>
+            </div>
+
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // キャンバス設定
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let isRunning = false;
+        let animationId;
+        let currentView = '2d';
+        let showVectorField = false;
+
+        // シミュレーション変数
+        let particles = [];
+        let simulationTime = 0;
+        let frameCount = 0;
+        let lastFrameTime = performance.now();
+        let fps = 60;
+
+        // ベクトル場プリセット
+        const fieldPresets = {
+            magnetic: (x, y, z) => {
+                const r = Math.sqrt(x*x + y*y);
+                if (r < 0.1) return { x: 0, y: 0, z: 0 };
+                return {
+                    x: -y / r,
+                    y: x / r,
+                    z: 0
+                };
+            },
+            fluid: (x, y, z) => ({
+                x: Math.sin(y) * Math.cos(x),
+                y: -Math.cos(y) * Math.sin(x),
+                z: 0
+            }),
+            vortex: (x, y, z) => {
+                const r = Math.sqrt(x*x + y*y);
+                const theta = Math.atan2(y, x);
+                return {
+                    x: -y / (1 + r*r),
+                    y: x / (1 + r*r),
+                    z: 0
+                };
+            },
+            source: (x, y, z) => {
+                const r = Math.sqrt(x*x + y*y + z*z);
+                if (r < 0.1) return { x: 0, y: 0, z: 0 };
+                return {
+                    x: x / r,
+                    y: y / r,
+                    z: z / r
+                };
+            },
+            tornado: (x, y, z) => ({
+                x: -y + 0.1 * x * z,
+                y: x + 0.1 * y * z,
+                z: -0.1 * (x*x + y*y)
+            }),
+            electric: (x, y, z) => {
+                const q1 = { x: -1, y: 0 };
+                const q2 = { x: 1, y: 0 };
+                const r1 = Math.sqrt((x-q1.x)**2 + (y-q1.y)**2);
+                const r2 = Math.sqrt((x-q2.x)**2 + (y-q2.y)**2);
+                return {
+                    x: (x-q1.x)/(r1**3) - (x-q2.x)/(r2**3),
+                    y: (y-q1.y)/(r1**3) - (y-q2.y)/(r2**3),
+                    z: 0
+                };
+            },
+            dipole: (x, y, z) => {
+                const r = Math.sqrt(x*x + y*y + z*z);
+                if (r < 0.1) return { x: 0, y: 0, z: 0 };
+                const cosTheta = z / r;
+                return {
+                    x: 3 * x * z / (r**5),
+                    y: 3 * y * z / (r**5),
+                    z: (3 * cosTheta**2 - 1) / (r**3)
+                };
+            },
+            chaos: (x, y, z) => ({
+                x: 10 * (y - x),
+                y: x * (28 - z) - y,
+                z: x * y - 8 * z / 3
+            }),
+            laminar: (x, y, z) => ({
+                x: 1 + 0.1 * Math.sin(y),
+                y: 0.1 * Math.cos(x),
+                z: 0
+            }),
+            turbulent: (x, y, z) => ({
+                x: Math.sin(y + simulationTime) + 0.5 * Math.cos(2*x),
+                y: Math.cos(x + simulationTime) - 0.5 * Math.sin(2*y),
+                z: 0.1 * Math.sin(x + y + simulationTime)
+            })
+        };
+
+        let currentField = fieldPresets.magnetic;
+        let fieldStrength = 1;
+        let vortexStrength = 1;
+        let timeStep = 0.01;
+        let animSpeed = 1;
+
+        // パーティクルクラス
+        class Particle {
+            constructor(x, y, z, color) {
+                this.position = { x, y, z };
+                this.trail = [{ ...this.position }];
+                this.maxTrailLength = 100;
+                this.color = color;
+                this.age = 0;
+            }
+
+            update(dt) {
+                // Runge-Kutta 4次法
+                const k1 = this.getVelocity(this.position);
+                const k2 = this.getVelocity({
+                    x: this.position.x + dt * k1.x / 2,
+                    y: this.position.y + dt * k1.y / 2,
+                    z: this.position.z + dt * k1.z / 2
+                });
+                const k3 = this.getVelocity({
+                    x: this.position.x + dt * k2.x / 2,
+                    y: this.position.y + dt * k2.y / 2,
+                    z: this.position.z + dt * k2.z / 2
+                });
+                const k4 = this.getVelocity({
+                    x: this.position.x + dt * k3.x,
+                    y: this.position.y + dt * k3.y,
+                    z: this.position.z + dt * k3.z
+                });
+
+                this.position.x += dt * (k1.x + 2*k2.x + 2*k3.x + k4.x) / 6;
+                this.position.y += dt * (k1.y + 2*k2.y + 2*k3.y + k4.y) / 6;
+                this.position.z += dt * (k1.z + 2*k2.z + 2*k3.z + k4.z) / 6;
+
+                // 境界チェック
+                const bound = 5;
+                if (Math.abs(this.position.x) > bound) this.position.x = -this.position.x;
+                if (Math.abs(this.position.y) > bound) this.position.y = -this.position.y;
+                if (Math.abs(this.position.z) > bound) this.position.z = -this.position.z;
+
+                // トレイル更新
+                this.trail.push({ ...this.position });
+                if (this.trail.length > this.maxTrailLength) {
+                    this.trail.shift();
+                }
+
+                this.age += dt;
+            }
+
+            getVelocity(pos) {
+                const field = currentField(pos.x, pos.y, pos.z);
+                return {
+                    x: field.x * fieldStrength * vortexStrength,
+                    y: field.y * fieldStrength * vortexStrength,
+                    z: field.z * fieldStrength * vortexStrength
+                };
+            }
+
+            draw() {
+                if (currentView === '2d') {
+                    this.draw2D();
+                } else {
+                    this.draw3D();
+                }
+            }
+
+            draw2D() {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const scale = Math.min(width, height) / 10;
+
+                // トレイル描画
+                ctx.beginPath();
+                for (let i = 0; i < this.trail.length - 1; i++) {
+                    const opacity = i / this.trail.length;
+                    const point = this.trail[i];
+                    const nextPoint = this.trail[i + 1];
+                    
+                    const x1 = centerX + point.x * scale;
+                    const y1 = centerY - point.y * scale;
+                    const x2 = centerX + nextPoint.x * scale;
+                    const y2 = centerY - nextPoint.y * scale;
+
+                    const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+                    gradient.addColorStop(0, `${this.color}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`);
+                    gradient.addColorStop(1, `${this.color}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`);
+
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 2 + opacity * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+
+                // パーティクル本体
+                const x = centerX + this.position.x * scale;
+                const y = centerY - this.position.y * scale;
+                
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // グロー効果
+                const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
+                glowGradient.addColorStop(0, `${this.color}80`);
+                glowGradient.addColorStop(1, `${this.color}00`);
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 20, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            draw3D() {
+                // 簡易3D投影
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const scale = Math.min(width, height) / 12;
+                const rotY = simulationTime * 0.2;
+
+                const project3D = (point) => {
+                    const x = point.x * Math.cos(rotY) - point.z * Math.sin(rotY);
+                    const z = point.x * Math.sin(rotY) + point.z * Math.cos(rotY);
+                    const perspective = 1 / (1 + z * 0.1);
+                    
+                    return {
+                        x: centerX + x * scale * perspective,
+                        y: centerY - (point.y - z * 0.3) * scale * perspective,
+                        scale: perspective
+                    };
+                };
+
+                // トレイル描画
+                for (let i = 0; i < this.trail.length - 1; i++) {
+                    const opacity = i / this.trail.length;
+                    const p1 = project3D(this.trail[i]);
+                    const p2 = project3D(this.trail[i + 1]);
+
+                    ctx.strokeStyle = `${this.color}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`;
+                    ctx.lineWidth = (1 + opacity * 2) * p1.scale;
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+
+                // パーティクル本体
+                const projected = project3D(this.position);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(projected.x, projected.y, 4 * projected.scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 初期化
+        function init() {
+            resizeCanvas();
+            initializeParticles();
+            updateControls();
+            requestAnimationFrame(animate);
+        }
+
+        function resizeCanvas() {
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        function initializeParticles() {
+            particles = [];
+            const colors = [
+                document.getElementById('particleColor1').value,
+                document.getElementById('particleColor2').value,
+                document.getElementById('particleColor3').value
+            ];
+            
+            const count = parseInt(document.getElementById('particleCount').value);
+            
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2;
+                const radius = 2;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                const z = (Math.random() - 0.5) * 2;
+                const color = colors[i % colors.length];
+                
+                particles.push(new Particle(x, y, z, color));
+            }
+        }
+
+        function randomizeParticles() {
+            particles.forEach(particle => {
+                particle.position.x = (Math.random() - 0.5) * 4;
+                particle.position.y = (Math.random() - 0.5) * 4;
+                particle.position.z = (Math.random() - 0.5) * 4;
+                particle.trail = [{ ...particle.position }];
+            });
+        }
+
+        // アニメーションループ
+        function animate(currentTime) {
+            animationId = requestAnimationFrame(animate);
+            
+            // FPS計算
+            frameCount++;
+            if (currentTime - lastFrameTime > 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFrameTime = currentTime;
+                document.getElementById('statFPS').textContent = fps;
+            }
+
+            // クリア
+            ctx.fillStyle = 'rgba(10, 14, 26, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            // ベクトル場表示
+            if (showVectorField) {
+                drawVectorField();
+            }
+
+            // シミュレーション更新
+            if (isRunning) {
+                const dt = timeStep * animSpeed;
+                particles.forEach(particle => {
+                    particle.update(dt);
+                });
+                simulationTime += dt;
+                
+                document.getElementById('statTime').textContent = simulationTime.toFixed(2) + 's';
+            }
+
+            // パーティクル描画
+            particles.forEach(particle => {
+                particle.draw();
+            });
+        }
+
+        function drawVectorField() {
+            const gridSize = 40;
+            const scale = Math.min(width, height) / 10;
+            const arrowSize = 15;
+
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.3)';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < width; i += gridSize) {
+                for (let j = 0; j < height; j += gridSize) {
+                    const x = (i - width/2) / scale;
+                    const y = -(j - height/2) / scale;
+                    const field = currentField(x, y, 0);
+                    
+                    const mag = Math.sqrt(field.x**2 + field.y**2);
+                    if (mag > 0) {
+                        const dx = (field.x / mag) * arrowSize;
+                        const dy = -(field.y / mag) * arrowSize;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(i, j);
+                        ctx.lineTo(i + dx, j + dy);
+                        ctx.stroke();
+                        
+                        // 矢じり
+                        const angle = Math.atan2(dy, dx);
+                        ctx.beginPath();
+                        ctx.moveTo(i + dx, j + dy);
+                        ctx.lineTo(
+                            i + dx - 5 * Math.cos(angle - Math.PI/6),
+                            j + dy - 5 * Math.sin(angle - Math.PI/6)
+                        );
+                        ctx.moveTo(i + dx, j + dy);
+                        ctx.lineTo(
+                            i + dx - 5 * Math.cos(angle + Math.PI/6),
+                            j + dy - 5 * Math.sin(angle + Math.PI/6)
+                        );
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // コントロール関数
+        function startSimulation() {
+            isRunning = true;
+        }
+
+        function pauseSimulation() {
+            isRunning = false;
+        }
+
+        function resetSimulation() {
+            isRunning = false;
+            simulationTime = 0;
+            initializeParticles();
+        }
+
+        function setPreset(preset) {
+            currentField = fieldPresets[preset];
+            document.querySelectorAll('.preset-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            resetSimulation();
+        }
+
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function toggleVectorField() {
+            showVectorField = !showVectorField;
+        }
+
+        function takeSnapshot() {
+            const link = document.createElement('a');
+            link.download = `vector_field_${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function applyCustomFunction() {
+            const code = document.getElementById('customFunction').value;
+            try {
+                currentField = new Function('x', 'y', 'z', code);
+                resetSimulation();
+                alert('カスタム関数が適用されました');
+            } catch (error) {
+                alert('エラー: ' + error.message);
+            }
+        }
+
+        function updateControls() {
+            // スライダー値更新
+            document.getElementById('fieldStrength').addEventListener('input', (e) => {
+                fieldStrength = parseFloat(e.target.value);
+                document.getElementById('fieldStrengthValue').textContent = fieldStrength.toFixed(1);
+            });
+
+            document.getElementById('vortexStrength').addEventListener('input', (e) => {
+                vortexStrength = parseFloat(e.target.value);
+                document.getElementById('vortexStrengthValue').textContent = vortexStrength.toFixed(1);
+            });
+
+            document.getElementById('timeStep').addEventListener('input', (e) => {
+                timeStep = parseFloat(e.target.value);
+                document.getElementById('timeStepValue').textContent = timeStep.toFixed(3);
+            });
+
+            document.getElementById('animSpeed').addEventListener('input', (e) => {
+                animSpeed = parseFloat(e.target.value);
+                document.getElementById('animSpeedValue').textContent = animSpeed.toFixed(1);
+            });
+
+            document.getElementById('particleCount').addEventListener('input', (e) => {
+                const count = parseInt(e.target.value);
+                document.getElementById('particleCountValue').textContent = count;
+                document.getElementById('statParticles').textContent = count;
+                initializeParticles();
+            });
+
+            document.getElementById('trailLength').addEventListener('input', (e) => {
+                const length = parseInt(e.target.value);
+                document.getElementById('trailLengthValue').textContent = length;
+                particles.forEach(p => p.maxTrailLength = length);
+            });
+        }
+
+        // マウス/タッチ操作
+        let isDragging = false;
+        let lastMouseX, lastMouseY;
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging && currentView !== '2d') {
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+                // 3Dビューの回転制御（簡易版）
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            // ズーム機能（将来実装）
+        });
+
+        // リサイズ対応
+        window.addEventListener('resize', resizeCanvas);
+
+        // 初期化実行
+        init();
+    </script>
+</body>
+</html>
