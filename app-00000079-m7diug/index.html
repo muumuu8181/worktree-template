@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ベクトル場流線シミュレーター</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: radial-gradient(circle at center, #0a0a0a, #1a1a2e, #16213e);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+        
+        .main-canvas {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(45deg, #0f0f23, #1a1a2e);
+        }
+        
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+        
+        .control-section h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        label {
+            display: block;
+            margin: 8px 0 4px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0 10px;
+            accent-color: #00ffff;
+        }
+        
+        input[type="number"], select, button {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 12px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 255, 0.4);
+        }
+        
+        .value-display {
+            color: #00ffff;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        
+        .particle-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+        
+        .preset-btn {
+            padding: 8px;
+            font-size: 0.8em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #fff;
+        }
+        
+        .preset-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .stats div {
+            margin: 3px 0;
+        }
+        
+        .camera-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .camera-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            color: #fff;
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .camera-btn:hover {
+            background: rgba(0, 255, 255, 0.4);
+        }
+        
+        @keyframes flowAnimation {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 20; }
+        }
+        
+        .flow-line {
+            animation: flowAnimation 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🌊 ベクトル場流線シミュレーター</h1>
+            
+            <div class="control-section">
+                <h3>🎯 ベクトル場設定</h3>
+                <label>場のタイプ:</label>
+                <select id="fieldType">
+                    <option value="vortex">渦場 (Vortex)</option>
+                    <option value="radial">放射場 (Radial)</option>
+                    <option value="uniform">一様場 (Uniform)</option>
+                    <option value="saddle">鞍点場 (Saddle)</option>
+                    <option value="magnetic">磁場モデル</option>
+                    <option value="fluid">流体力学</option>
+                    <option value="custom">カスタム関数</option>
+                </select>
+                
+                <label>強度: <span class="value-display" id="strengthDisplay">1.0</span></label>
+                <input type="range" id="strength" min="0.1" max="3.0" step="0.1" value="1.0">
+                
+                <label>渦巻き係数: <span class="value-display" id="vortexDisplay">1.0</span></label>
+                <input type="range" id="vortexFactor" min="-2.0" max="2.0" step="0.1" value="1.0">
+                
+                <label>減衰: <span class="value-display" id="dampingDisplay">0.0</span></label>
+                <input type="range" id="damping" min="0.0" max="0.1" step="0.005" value="0.0">
+            </div>
+            
+            <div class="control-section">
+                <h3>🎲 粒子設定</h3>
+                <div class="particle-controls">
+                    <div>
+                        <label>粒子数:</label>
+                        <input type="number" id="particleCount" min="1" max="50" value="10">
+                    </div>
+                    <div>
+                        <label>トレイル長:</label>
+                        <input type="number" id="trailLength" min="10" max="500" value="100">
+                    </div>
+                </div>
+                
+                <label>初期速度: <span class="value-display" id="velocityDisplay">0.5</span></label>
+                <input type="range" id="initialVelocity" min="0.1" max="2.0" step="0.1" value="0.5">
+                
+                <button onclick="resetParticles()">🔄 粒子リセット</button>
+                <button onclick="addRandomParticle()">➕ ランダム粒子追加</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>🎨 ビジュアル設定</h3>
+                <label>軌道の輝度: <span class="value-display" id="brightnessDisplay">0.8</span></label>
+                <input type="range" id="brightness" min="0.1" max="1.0" step="0.1" value="0.8">
+                
+                <label>
+                    <input type="checkbox" id="showField" checked> ベクトル場表示
+                </label>
+                <label>
+                    <input type="checkbox" id="showTrails" checked> 軌道トレイル
+                </label>
+                <label>
+                    <input type="checkbox" id="gradientTrails" checked> グラデーション軌道
+                </label>
+            </div>
+            
+            <div class="control-section">
+                <h3>📋 プリセット場</h3>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="loadPreset('tornado')">竜巻</button>
+                    <button class="preset-btn" onclick="loadPreset('galaxy')">銀河</button>
+                    <button class="preset-btn" onclick="loadPreset('ocean')">海流</button>
+                    <button class="preset-btn" onclick="loadPreset('magnetic')">磁場</button>
+                    <button class="preset-btn" onclick="loadPreset('chaos')">カオス</button>
+                    <button class="preset-btn" onclick="loadPreset('double')">双極子</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <button onclick="takeSnapshot()">📸 スナップショット保存</button>
+                <button onclick="toggleAnimation()">⏯️ アニメーション切替</button>
+            </div>
+        </div>
+        
+        <div class="main-canvas">
+            <canvas id="canvas"></canvas>
+            
+            <div class="stats">
+                <div>軌道精度: <span id="accuracy">0.001</span></div>
+                <div>シミュレーション速度: <span id="simSpeed">60</span> steps/s</div>
+                <div>解像度: <span id="resolution">1920x1080</span></div>
+                <div>粒子数: <span id="activeParticles">0</span></div>
+                <div>FPS: <span id="fps">60</span></div>
+            </div>
+            
+            <div class="camera-controls">
+                <button class="camera-btn" onclick="zoomIn()">+</button>
+                <button class="camera-btn" onclick="zoomOut()">-</button>
+                <button class="camera-btn" onclick="resetView()">⌂</button>
+                <button class="camera-btn" onclick="rotate3D()">🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let fieldType = 'vortex';
+        let animationId = null;
+        let isAnimating = true;
+        let camera = { x: 0, y: 0, zoom: 1, rotation: 0 };
+        let frameCount = 0;
+        let lastFpsTime = 0;
+        
+        // キャンバス初期化
+        function initCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        
+        // 粒子クラス
+        class Particle {
+            constructor(x, y, vx = 0, vy = 0) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.trail = [];
+                this.age = 0;
+                this.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+            }
+            
+            update() {
+                const field = getVectorField(this.x, this.y);
+                const dt = 0.016; // 60fps想定
+                
+                // Runge-Kutta法による軌道計算
+                const k1x = field.x * dt;
+                const k1y = field.y * dt;
+                
+                const field2 = getVectorField(this.x + k1x/2, this.y + k1y/2);
+                const k2x = field2.x * dt;
+                const k2y = field2.y * dt;
+                
+                const field3 = getVectorField(this.x + k2x/2, this.y + k2y/2);
+                const k3x = field3.x * dt;
+                const k3y = field3.y * dt;
+                
+                const field4 = getVectorField(this.x + k3x, this.y + k3y);
+                const k4x = field4.x * dt;
+                const k4y = field4.y * dt;
+                
+                this.vx = (k1x + 2*k2x + 2*k3x + k4x) / 6;
+                this.vy = (k1y + 2*k2y + 2*k3y + k4y) / 6;
+                
+                // 位置更新
+                this.trail.push({x: this.x, y: this.y, age: this.age});
+                this.x += this.vx;
+                this.y += this.vy;
+                this.age++;
+                
+                // トレイル長制限
+                const maxTrail = parseInt(document.getElementById('trailLength').value);
+                if (this.trail.length > maxTrail) {
+                    this.trail.shift();
+                }
+                
+                // 境界チェック
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.trail = [];
+                this.age = 0;
+            }
+            
+            draw() {
+                if (!document.getElementById('showTrails').checked) return;
+                
+                const brightness = parseFloat(document.getElementById('brightness').value);
+                const gradient = document.getElementById('gradientTrails').checked;
+                
+                if (this.trail.length < 2) return;
+                
+                ctx.beginPath();
+                ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                
+                for (let i = 1; i < this.trail.length; i++) {
+                    const alpha = gradient ? (i / this.trail.length) * brightness : brightness;
+                    const hue = gradient ? (i * 2) % 360 : 180;
+                    
+                    ctx.strokeStyle = `hsla(${hue}, 70%, 60%, ${alpha})`;
+                    ctx.lineWidth = 2 + Math.sin(i * 0.1) * 0.5;
+                    
+                    ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(this.trail[i].x, this.trail[i].y);
+                }
+                
+                // 粒子本体
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // ベクトル場計算
+        function getVectorField(x, y) {
+            const strength = parseFloat(document.getElementById('strength').value);
+            const vortex = parseFloat(document.getElementById('vortexFactor').value);
+            const damping = parseFloat(document.getElementById('damping').value);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const dx = x - centerX;
+            const dy = y - centerY;
+            const r = Math.sqrt(dx*dx + dy*dy);
+            
+            let fx = 0, fy = 0;
+            
+            switch (fieldType) {
+                case 'vortex':
+                    fx = -dy * vortex * strength / 100;
+                    fy = dx * vortex * strength / 100;
+                    break;
+                    
+                case 'radial':
+                    if (r > 0) {
+                        fx = (dx / r) * strength;
+                        fy = (dy / r) * strength;
+                    }
+                    break;
+                    
+                case 'uniform':
+                    fx = strength;
+                    fy = 0;
+                    break;
+                    
+                case 'saddle':
+                    fx = dx * strength / 100;
+                    fy = -dy * strength / 100;
+                    break;
+                    
+                case 'magnetic':
+                    const field1 = Math.sin(x * 0.01) * Math.cos(y * 0.01);
+                    const field2 = Math.cos(x * 0.01) * Math.sin(y * 0.01);
+                    fx = field1 * strength;
+                    fy = field2 * strength;
+                    break;
+                    
+                case 'fluid':
+                    fx = Math.sin(y * 0.02) * strength;
+                    fy = Math.cos(x * 0.02) * strength;
+                    break;
+                    
+                default:
+                    fx = -dy * vortex * strength / 100;
+                    fy = dx * vortex * strength / 100;
+            }
+            
+            // 減衰適用
+            fx *= (1 - damping * r / 1000);
+            fy *= (1 - damping * r / 1000);
+            
+            return {x: fx, y: fy};
+        }
+        
+        // ベクトル場可視化
+        function drawVectorField() {
+            if (!document.getElementById('showField').checked) return;
+            
+            const step = 40;
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            
+            for (let x = step; x < canvas.width; x += step) {
+                for (let y = step; y < canvas.height; y += step) {
+                    const field = getVectorField(x, y);
+                    const scale = 20;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + field.x * scale, y + field.y * scale);
+                    ctx.stroke();
+                    
+                    // 矢印
+                    const angle = Math.atan2(field.y, field.x);
+                    const headSize = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(x + field.x * scale, y + field.y * scale);
+                    ctx.lineTo(
+                        x + field.x * scale - headSize * Math.cos(angle - 0.5),
+                        y + field.y * scale - headSize * Math.sin(angle - 0.5)
+                    );
+                    ctx.moveTo(x + field.x * scale, y + field.y * scale);
+                    ctx.lineTo(
+                        x + field.x * scale - headSize * Math.cos(angle + 0.5),
+                        y + field.y * scale - headSize * Math.sin(angle + 0.5)
+                    );
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // メインアニメーションループ
+        function animate() {
+            if (!isAnimating) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 背景グラデーション
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0,
+                canvas.width/2, canvas.height/2, canvas.width/2
+            );
+            gradient.addColorStop(0, 'rgba(15, 15, 35, 0.1)');
+            gradient.addColorStop(1, 'rgba(26, 26, 46, 0.3)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // ベクトル場描画
+            drawVectorField();
+            
+            // 粒子更新・描画
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            // 統計更新
+            updateStats();
+            
+            frameCount++;
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // 統計情報更新
+        function updateStats() {
+            const now = performance.now();
+            if (now - lastFpsTime > 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+            }
+            
+            document.getElementById('activeParticles').textContent = particles.length;
+            document.getElementById('resolution').textContent = `${canvas.width}x${canvas.height}`;
+        }
+        
+        // 粒子リセット
+        function resetParticles() {
+            particles = [];
+            const count = parseInt(document.getElementById('particleCount').value);
+            for (let i = 0; i < count; i++) {
+                addRandomParticle();
+            }
+        }
+        
+        // ランダム粒子追加
+        function addRandomParticle() {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const vel = parseFloat(document.getElementById('initialVelocity').value);
+            const vx = (Math.random() - 0.5) * vel;
+            const vy = (Math.random() - 0.5) * vel;
+            particles.push(new Particle(x, y, vx, vy));
+        }
+        
+        // プリセット読み込み
+        function loadPreset(type) {
+            switch (type) {
+                case 'tornado':
+                    document.getElementById('fieldType').value = 'vortex';
+                    document.getElementById('strength').value = '2.0';
+                    document.getElementById('vortexFactor').value = '1.5';
+                    break;
+                case 'galaxy':
+                    document.getElementById('fieldType').value = 'vortex';
+                    document.getElementById('strength').value = '1.0';
+                    document.getElementById('vortexFactor').value = '0.8';
+                    break;
+                case 'ocean':
+                    document.getElementById('fieldType').value = 'fluid';
+                    document.getElementById('strength').value = '1.5';
+                    break;
+                case 'magnetic':
+                    document.getElementById('fieldType').value = 'magnetic';
+                    document.getElementById('strength').value = '1.2';
+                    break;
+                case 'chaos':
+                    document.getElementById('fieldType').value = 'saddle';
+                    document.getElementById('strength').value = '2.5';
+                    break;
+                case 'double':
+                    document.getElementById('fieldType').value = 'radial';
+                    document.getElementById('strength').value = '1.8';
+                    break;
+            }
+            updateDisplayValues();
+            fieldType = document.getElementById('fieldType').value;
+        }
+        
+        // 表示値更新
+        function updateDisplayValues() {
+            document.getElementById('strengthDisplay').textContent = 
+                document.getElementById('strength').value;
+            document.getElementById('vortexDisplay').textContent = 
+                document.getElementById('vortexFactor').value;
+            document.getElementById('dampingDisplay').textContent = 
+                document.getElementById('damping').value;
+            document.getElementById('velocityDisplay').textContent = 
+                document.getElementById('initialVelocity').value;
+            document.getElementById('brightnessDisplay').textContent = 
+                document.getElementById('brightness').value;
+        }
+        
+        // カメラ制御
+        function zoomIn() { camera.zoom *= 1.2; }
+        function zoomOut() { camera.zoom /= 1.2; }
+        function resetView() { camera = { x: 0, y: 0, zoom: 1, rotation: 0 }; }
+        function rotate3D() { camera.rotation += 0.1; }
+        
+        // スナップショット
+        function takeSnapshot() {
+            const link = document.createElement('a');
+            link.download = `vector_field_${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // アニメーション切替
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            if (isAnimating) {
+                animate();
+            } else {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        // イベントリスナー
+        document.getElementById('fieldType').addEventListener('change', (e) => {
+            fieldType = e.target.value;
+        });
+        
+        // スライダー更新
+        ['strength', 'vortexFactor', 'damping', 'initialVelocity', 'brightness'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateDisplayValues);
+        });
+        
+        // マウスクリックで粒子追加
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            particles.push(new Particle(x, y));
+        });
+        
+        // ウィンドウリサイズ
+        window.addEventListener('resize', initCanvas);
+        
+        // 初期化
+        initCanvas();
+        resetParticles();
+        updateDisplayValues();
+        animate();
+    </script>
+</body>
+</html>
