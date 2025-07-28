@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>格好良い時計アプリ | Stylish Clock</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3B82F6;
+            --secondary-color: #10B981;
+            --background-color: #0F172A;
+            --surface-color: #1E293B;
+            --text-color: #F8FAFC;
+            --accent-color: #F59E0B;
+            --error-color: #EF4444;
+            --clock-size: min(80vw, 80vh, 400px);
+        }
+
+        [data-theme="classic"] {
+            --primary-color: #8B4513;
+            --secondary-color: #DAA520;
+            --background-color: #FDF5E6;
+            --surface-color: #FAF0E6;
+            --text-color: #2C1810;
+            --accent-color: #B8860B;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #6366F1;
+            --secondary-color: #8B5CF6;
+            --background-color: #000000;
+            --surface-color: #111111;
+            --text-color: #FFFFFF;
+            --accent-color: #EC4899;
+        }
+
+        [data-theme="neon"] {
+            --primary-color: #00FFFF;
+            --secondary-color: #FF00FF;
+            --background-color: #0A0A0A;
+            --surface-color: #1A1A1A;
+            --text-color: #FFFFFF;
+            --accent-color: #FFFF00;
+        }
+
+        [data-theme="nature"] {
+            --primary-color: #22C55E;
+            --secondary-color: #059669;
+            --background-color: #ECFDF5;
+            --surface-color: #D1FAE5;
+            --text-color: #064E3B;
+            --accent-color: #F59E0B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s ease;
+        }
+
+        .header {
+            background-color: var(--surface-color);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            gap: 2rem;
+        }
+
+        .clock-container {
+            position: relative;
+            width: var(--clock-size);
+            height: var(--clock-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #analogClock {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        #analogClock:hover {
+            transform: scale(1.05);
+        }
+
+        #digitalClock {
+            position: absolute;
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: 300;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-color);
+            text-shadow: 0 0 20px currentColor;
+            letter-spacing: 0.1em;
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .theme-selector {
+            position: relative;
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.5rem;
+            background-color: var(--surface-color);
+            border-radius: 0.5rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            display: none;
+            min-width: 150px;
+            z-index: 1000;
+        }
+
+        .theme-dropdown.active {
+            display: block;
+        }
+
+        .theme-option {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theme-option:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .theme-option:first-child {
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+
+        .theme-option:last-child {
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
+
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .fullscreen-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .fullscreen-btn {
+                bottom: 1rem;
+                right: 1rem;
+            }
+        }
+
+        /* Neon theme special effects */
+        [data-theme="neon"] #digitalClock {
+            animation: neon-flicker 2s infinite alternate;
+        }
+
+        @keyframes neon-flicker {
+            0%, 100% {
+                text-shadow: 
+                    0 0 5px currentColor,
+                    0 0 10px currentColor,
+                    0 0 20px currentColor,
+                    0 0 40px currentColor;
+            }
+            50% {
+                text-shadow: 
+                    0 0 10px currentColor,
+                    0 0 20px currentColor,
+                    0 0 30px currentColor,
+                    0 0 50px currentColor;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-clock"></i> 格好良い時計アプリ</h1>
+        <div class="nav-links">
+            <a href="../"><i class="fas fa-home"></i> ホーム</a>
+            <a href="#" onclick="showHelp()"><i class="fas fa-question-circle"></i> ヘルプ</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="clock-container">
+            <canvas id="analogClock"></canvas>
+            <div id="digitalClock">00:00:00</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="toggleClockType()">
+                <i class="fas fa-exchange-alt"></i>
+                <span id="toggleText">デジタル表示</span>
+            </button>
+
+            <div class="theme-selector">
+                <button class="btn btn-secondary" onclick="toggleThemeDropdown()">
+                    <i class="fas fa-palette"></i> テーマ変更
+                </button>
+                <div id="themeDropdown" class="theme-dropdown">
+                    <div class="theme-option" onclick="changeTheme('modern')">
+                        <i class="fas fa-laptop"></i> Modern
+                    </div>
+                    <div class="theme-option" onclick="changeTheme('classic')">
+                        <i class="fas fa-clock"></i> Classic
+                    </div>
+                    <div class="theme-option" onclick="changeTheme('dark')">
+                        <i class="fas fa-moon"></i> Dark
+                    </div>
+                    <div class="theme-option" onclick="changeTheme('neon')">
+                        <i class="fas fa-bolt"></i> Neon
+                    </div>
+                    <div class="theme-option" onclick="changeTheme('nature')">
+                        <i class="fas fa-leaf"></i> Nature
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">
+        <i class="fas fa-expand"></i>
+    </button>
+
+    <script>
+        // 時計アプリの状態管理
+        let isAnalog = true;
+        let currentTheme = 'modern';
+        let animationFrame = null;
+
+        // 初期化
+        function init() {
+            const canvas = document.getElementById('analogClock');
+            const size = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 400);
+            canvas.width = size;
+            canvas.height = size;
+            
+            drawClock();
+            setInterval(updateDigitalClock, 1000);
+            updateDigitalClock();
+        }
+
+        // アナログ時計の描画
+        function drawClock() {
+            const canvas = document.getElementById('analogClock');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+
+            // キャンバスをクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 時計の背景
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--surface-color');
+            ctx.fill();
+            ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--primary-color');
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // 時刻マーカー
+            for (let i = 0; i < 12; i++) {
+                const angle = (i * Math.PI) / 6;
+                const x1 = centerX + Math.cos(angle - Math.PI / 2) * (radius - 10);
+                const y1 = centerY + Math.sin(angle - Math.PI / 2) * (radius - 10);
+                const x2 = centerX + Math.cos(angle - Math.PI / 2) * (radius - 20);
+                const y2 = centerY + Math.sin(angle - Math.PI / 2) * (radius - 20);
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--text-color');
+                ctx.lineWidth = i % 3 === 0 ? 3 : 1;
+                ctx.stroke();
+            }
+
+            // 現在時刻の取得
+            const now = new Date();
+            const hours = now.getHours() % 12;
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            // 時針
+            drawHand(ctx, centerX, centerY, (hours + minutes / 60) * 30, radius * 0.5, 6, getComputedStyle(document.body).getPropertyValue('--text-color'));
+            
+            // 分針
+            drawHand(ctx, centerX, centerY, (minutes + seconds / 60) * 6, radius * 0.7, 4, getComputedStyle(document.body).getPropertyValue('--text-color'));
+            
+            // 秒針
+            drawHand(ctx, centerX, centerY, seconds * 6, radius * 0.8, 2, getComputedStyle(document.body).getPropertyValue('--accent-color'));
+
+            // 中心点
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--primary-color');
+            ctx.fill();
+
+            // 次のフレームを要求
+            animationFrame = requestAnimationFrame(drawClock);
+        }
+
+        // 針の描画
+        function drawHand(ctx, centerX, centerY, angle, length, width, color) {
+            const radian = (angle - 90) * Math.PI / 180;
+            const x = centerX + Math.cos(radian) * length;
+            const y = centerY + Math.sin(radian) * length;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        // デジタル時計の更新
+        function updateDigitalClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('digitalClock').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // 時計タイプの切り替え
+        function toggleClockType() {
+            isAnalog = !isAnalog;
+            const analogClock = document.getElementById('analogClock');
+            const digitalClock = document.getElementById('digitalClock');
+            const toggleText = document.getElementById('toggleText');
+
+            if (isAnalog) {
+                analogClock.style.display = 'block';
+                digitalClock.style.display = 'none';
+                toggleText.textContent = 'デジタル表示';
+                drawClock();
+            } else {
+                analogClock.style.display = 'none';
+                digitalClock.style.display = 'block';
+                toggleText.textContent = 'アナログ表示';
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            }
+        }
+
+        // テーマドロップダウンの切り替え
+        function toggleThemeDropdown() {
+            const dropdown = document.getElementById('themeDropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // テーマの変更
+        function changeTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            currentTheme = theme;
+            toggleThemeDropdown();
+            if (isAnalog) {
+                drawClock();
+            }
+        }
+
+        // フルスクリーンの切り替え
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // ヘルプの表示
+        function showHelp() {
+            alert('格好良い時計アプリの使い方:\n\n' +
+                  '• アナログ/デジタル切替: 表示形式を変更\n' +
+                  '• テーマ変更: 5つのテーマから選択\n' +
+                  '• フルスクリーン: 右下のボタンで全画面表示\n\n' +
+                  'エンジョイ！');
+        }
+
+        // ウィンドウサイズ変更時の処理
+        window.addEventListener('resize', () => {
+            if (isAnalog) {
+                const canvas = document.getElementById('analogClock');
+                const size = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 400);
+                canvas.width = size;
+                canvas.height = size;
+            }
+        });
+
+        // ドキュメント外クリックでドロップダウンを閉じる
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.theme-selector')) {
+                document.getElementById('themeDropdown').classList.remove('active');
+            }
+        });
+
+        // 初期化実行
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
