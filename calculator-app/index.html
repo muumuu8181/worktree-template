@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電卓アプリ - Calculator App</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-button: #0f3460;
+            --bg-operator: #e94560;
+            --bg-equals: #00d9ff;
+            --text-primary: #eaeaea;
+            --text-secondary: #94a3b8;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --hover-opacity: 0.85;
+            --active-scale: 0.95;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #e9ecef;
+            --bg-button: #495057;
+            --bg-operator: #dc3545;
+            --bg-equals: #0d6efd;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-button);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px var(--shadow);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .calculator-container {
+            background-color: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px var(--shadow);
+            max-width: 400px;
+            width: 100%;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .display {
+            background-color: var(--bg-primary);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: right;
+            box-shadow: inset 0 2px 10px var(--shadow);
+        }
+
+        .current-input {
+            font-size: 2.5rem;
+            min-height: 60px;
+            word-wrap: break-word;
+            word-break: break-all;
+        }
+
+        .previous-input {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            min-height: 25px;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        button {
+            background-color: var(--bg-button);
+            border: none;
+            border-radius: 15px;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px var(--shadow);
+            font-weight: 600;
+        }
+
+        button:hover {
+            opacity: var(--hover-opacity);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--shadow);
+        }
+
+        button:active {
+            transform: scale(var(--active-scale)) translateY(0);
+        }
+
+        .operator {
+            background-color: var(--bg-operator);
+        }
+
+        .equals {
+            background-color: var(--bg-equals);
+            grid-column: span 2;
+        }
+
+        .clear {
+            background-color: var(--bg-operator);
+            grid-column: span 2;
+        }
+
+        .history-container {
+            margin-top: 30px;
+            background-color: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px var(--shadow);
+            max-width: 400px;
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .download-btn {
+            background-color: var(--bg-button);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover {
+            opacity: var(--hover-opacity);
+            transform: translateY(-1px);
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: var(--bg-primary);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .history-expression {
+            font-size: 0.95rem;
+        }
+
+        .history-result {
+            font-weight: 600;
+            color: var(--bg-equals);
+        }
+
+        .history-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .history-empty {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 20px;
+        }
+
+        /* スクロールバーのスタイリング */
+        .history-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .history-container::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        .history-container::-webkit-scrollbar-thumb {
+            background: var(--bg-button);
+            border-radius: 4px;
+        }
+
+        .history-container::-webkit-scrollbar-thumb:hover {
+            background: var(--bg-operator);
+        }
+
+        /* レスポンシブデザイン */
+        @media (max-width: 480px) {
+            .calculator-container, .history-container {
+                padding: 20px;
+            }
+            
+            button {
+                padding: 15px;
+                font-size: 1.2rem;
+            }
+            
+            .current-input {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+    
+    <div class="calculator-container">
+        <div class="display">
+            <div class="previous-input" id="previousInput"></div>
+            <div class="current-input" id="currentInput">0</div>
+        </div>
+        
+        <div class="buttons">
+            <button class="clear" onclick="clearAll()">C</button>
+            <button onclick="deleteLast()">⌫</button>
+            <button class="operator" onclick="appendOperator('/')">÷</button>
+            
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button class="operator" onclick="appendOperator('*')">×</button>
+            
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button class="operator" onclick="appendOperator('-')">−</button>
+            
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button class="operator" onclick="appendOperator('+')">+</button>
+            
+            <button onclick="appendNumber('0')">0</button>
+            <button onclick="appendDecimal()">.</button>
+            <button class="equals" onclick="calculateResult()">=</button>
+        </div>
+    </div>
+    
+    <div class="history-container">
+        <div class="history-header">
+            <div class="history-title">計算履歴</div>
+            <button class="download-btn" onclick="downloadHistory()">📥 ダウンロード</button>
+        </div>
+        <div id="historyList">
+            <div class="history-empty">履歴がありません</div>
+        </div>
+    </div>
+
+    <script>
+        let currentInput = '0';
+        let previousInput = '';
+        let operator = '';
+        let shouldResetInput = false;
+        let history = [];
+
+        // 既存のcalculate.jsのロジックをブラウザ用に移植
+        function calculate(expression) {
+            try {
+                const parts = expression.trim().split(' ');
+                
+                if (parts.length !== 3) {
+                    return "Invalid format";
+                }
+                
+                const num1 = parseFloat(parts[0]);
+                const operator = parts[1];
+                const num2 = parseFloat(parts[2]);
+                
+                if (isNaN(num1) || isNaN(num2)) {
+                    return "Invalid input";
+                }
+                
+                switch (operator) {
+                    case '+':
+                        return num1 + num2;
+                    case '-':
+                        return num1 - num2;
+                    case '*':
+                        return num1 * num2;
+                    case '/':
+                        if (num2 === 0) {
+                            return "Error: Division by zero";
+                        }
+                        return num1 / num2;
+                    default:
+                        return "Invalid operator";
+                }
+            } catch (error) {
+                return "Invalid input";
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('currentInput').textContent = currentInput;
+            document.getElementById('previousInput').textContent = previousInput;
+        }
+
+        function appendNumber(num) {
+            if (shouldResetInput || currentInput === '0') {
+                currentInput = num;
+                shouldResetInput = false;
+            } else {
+                currentInput += num;
+            }
+            updateDisplay();
+        }
+
+        function appendDecimal() {
+            if (shouldResetInput) {
+                currentInput = '0.';
+                shouldResetInput = false;
+            } else if (!currentInput.includes('.')) {
+                currentInput += '.';
+            }
+            updateDisplay();
+        }
+
+        function appendOperator(op) {
+            if (operator && !shouldResetInput) {
+                calculateResult();
+            }
+            
+            previousInput = currentInput + ' ' + getOperatorSymbol(op);
+            operator = op;
+            shouldResetInput = true;
+            updateDisplay();
+        }
+
+        function getOperatorSymbol(op) {
+            switch(op) {
+                case '+': return '+';
+                case '-': return '−';
+                case '*': return '×';
+                case '/': return '÷';
+                default: return op;
+            }
+        }
+
+        function calculateResult() {
+            if (!operator || !previousInput) return;
+            
+            const expression = previousInput.replace(/[+−×÷]/g, (match) => {
+                switch(match) {
+                    case '+': return '+';
+                    case '−': return '-';
+                    case '×': return '*';
+                    case '÷': return '/';
+                    default: return match;
+                }
+            }) + ' ' + currentInput;
+            
+            const result = calculate(expression);
+            
+            if (typeof result === 'number') {
+                // 履歴に追加
+                const historyItem = {
+                    expression: previousInput + ' ' + currentInput,
+                    result: result,
+                    timestamp: new Date().toISOString()
+                };
+                history.unshift(historyItem);
+                updateHistory();
+                
+                // 結果を表示
+                previousInput = previousInput + ' ' + currentInput + ' =';
+                currentInput = result.toString();
+            } else {
+                currentInput = result;
+            }
+            
+            operator = '';
+            shouldResetInput = true;
+            updateDisplay();
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            previousInput = '';
+            operator = '';
+            shouldResetInput = false;
+            updateDisplay();
+        }
+
+        function deleteLast() {
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplay();
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            
+            // テーマアイコンを更新
+            const themeButton = document.querySelector('.theme-toggle');
+            themeButton.textContent = newTheme === 'dark' ? '🌓' : '☀️';
+        }
+
+        function updateHistory() {
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">履歴がありません</div>';
+                return;
+            }
+            
+            historyList.innerHTML = history.slice(0, 50).map(item => {
+                const date = new Date(item.timestamp);
+                const timeString = date.toLocaleTimeString('ja-JP', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                return `
+                    <div class="history-item">
+                        <div>
+                            <div class="history-expression">${item.expression}</div>
+                            <div class="history-time">${timeString}</div>
+                        </div>
+                        <div class="history-result">${item.result}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function downloadHistory() {
+            if (history.length === 0) {
+                alert('ダウンロードする履歴がありません');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(history, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `calculator-history-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        // キーボードサポート
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                appendNumber(e.key);
+            } else if (e.key === '.') {
+                appendDecimal();
+            } else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+                appendOperator(e.key);
+            } else if (e.key === 'Enter' || e.key === '=') {
+                e.preventDefault();
+                calculateResult();
+            } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+                clearAll();
+            } else if (e.key === 'Backspace') {
+                deleteLast();
+            }
+        });
+
+        // 初期表示を更新
+        updateDisplay();
+    </script>
+</body>
+</html>
