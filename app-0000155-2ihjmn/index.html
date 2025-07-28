@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ダイナミックパーティクルアート</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            user-select: none;
+        }
+
+        #canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            color: #fff;
+            min-width: 250px;
+            transition: transform 0.3s ease;
+        }
+
+        #controls.hidden {
+            transform: translateX(calc(100% + 40px));
+        }
+
+        #toggleBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        #toggleBtn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #00ffff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .value-display {
+            display: inline-block;
+            color: #00ffff;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 255, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        .mode-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        @media (max-width: 768px) {
+            #controls {
+                right: 10px;
+                top: 60px;
+                min-width: 200px;
+                padding: 15px;
+            }
+
+            #toggleBtn {
+                right: 10px;
+            }
+
+            #info {
+                font-size: 12px;
+                bottom: 10px;
+                left: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <button id="toggleBtn">⚙️</button>
+    
+    <div id="controls">
+        <h3 style="margin-bottom: 20px; text-align: center; color: #00ffff;">コントロールパネル</h3>
+        
+        <div class="control-group">
+            <label>パーティクルサイズ <span class="value-display" id="sizeValue">3</span></label>
+            <input type="range" id="particleSize" min="1" max="10" value="3" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>生成速度 <span class="value-display" id="speedValue">5</span></label>
+            <input type="range" id="spawnRate" min="1" max="20" value="5">
+        </div>
+
+        <div class="control-group">
+            <label>最大パーティクル数 <span class="value-display" id="maxValue">500</span></label>
+            <input type="range" id="maxParticles" min="100" max="1000" value="500" step="50">
+        </div>
+
+        <div class="control-group">
+            <label>色相範囲 <span class="value-display" id="hueValue">180°</span></label>
+            <input type="range" id="hueRange" min="30" max="360" value="180" step="10">
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="glowEffect" checked>
+            <label for="glowEffect">グロー効果</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="connections" checked>
+            <label for="connections">接続線表示</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="mouseAttraction">
+            <label for="mouseAttraction">マウス引力モード</label>
+        </div>
+
+        <button id="clearBtn">画面クリア</button>
+        <button id="explosionBtn">爆発エフェクト</button>
+        <button id="fullscreenBtn">フルスクリーン</button>
+    </div>
+
+    <div class="mode-indicator" id="modeIndicator">通常モード</div>
+    <div id="info">
+        <span id="particleCount">0</span> パーティクル | FPS: <span id="fps">60</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const particles = [];
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMouseDown = false;
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let fps = 60;
+
+        // コントロール要素
+        const controls = document.getElementById('controls');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const particleSizeSlider = document.getElementById('particleSize');
+        const spawnRateSlider = document.getElementById('spawnRate');
+        const maxParticlesSlider = document.getElementById('maxParticles');
+        const hueRangeSlider = document.getElementById('hueRange');
+        const glowCheckbox = document.getElementById('glowEffect');
+        const connectionsCheckbox = document.getElementById('connections');
+        const attractionCheckbox = document.getElementById('mouseAttraction');
+        const clearBtn = document.getElementById('clearBtn');
+        const explosionBtn = document.getElementById('explosionBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        // 値表示要素
+        const sizeValue = document.getElementById('sizeValue');
+        const speedValue = document.getElementById('speedValue');
+        const maxValue = document.getElementById('maxValue');
+        const hueValue = document.getElementById('hueValue');
+        const particleCountSpan = document.getElementById('particleCount');
+        const fpsSpan = document.getElementById('fps');
+        const modeIndicator = document.getElementById('modeIndicator');
+
+        // 設定値
+        let config = {
+            particleSize: 3,
+            spawnRate: 5,
+            maxParticles: 500,
+            hueRange: 180,
+            glowEffect: true,
+            connections: true,
+            mouseAttraction: false
+        };
+
+        // Canvas設定
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // パーティクルクラス
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.size = Math.random() * config.particleSize + 1;
+                this.hue = Math.random() * config.hueRange;
+                this.saturation = 100;
+                this.lightness = 50;
+                this.alpha = 1;
+                this.life = 1;
+                this.decay = Math.random() * 0.01 + 0.005;
+            }
+
+            update() {
+                // 移動
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 重力
+                this.vy += 0.1;
+
+                // マウス引力
+                if (config.mouseAttraction && isMouseDown) {
+                    const dx = mouseX - this.x;
+                    const dy = mouseY - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 200) {
+                        const force = (200 - distance) / 200 * 0.5;
+                        this.vx += dx / distance * force;
+                        this.vy += dy / distance * force;
+                    }
+                }
+
+                // 摩擦
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+
+                // ライフ減少
+                this.life -= this.decay;
+                this.alpha = this.life;
+
+                // 色相変化
+                this.hue = (this.hue + 0.5) % 360;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+
+                // グロー効果
+                if (config.glowEffect) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = `hsl(${this.hue}, ${this.saturation}%, ${this.lightness}%)`;
+                }
+
+                // パーティクル描画
+                ctx.fillStyle = `hsl(${this.hue}, ${this.saturation}%, ${this.lightness}%)`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            isDead() {
+                return this.life <= 0 || this.x < -50 || this.x > canvas.width + 50 || 
+                       this.y < -50 || this.y > canvas.height + 50;
+            }
+        }
+
+        // パーティクル生成
+        function spawnParticles() {
+            if (isMouseDown && particles.length < config.maxParticles) {
+                for (let i = 0; i < config.spawnRate; i++) {
+                    particles.push(new Particle(mouseX, mouseY));
+                }
+            }
+        }
+
+        // 接続線描画
+        function drawConnections() {
+            if (!config.connections) return;
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 100) {
+                        ctx.save();
+                        ctx.globalAlpha = (1 - distance / 100) * 0.5 * particles[i].alpha * particles[j].alpha;
+                        ctx.strokeStyle = `hsl(${(particles[i].hue + particles[j].hue) / 2}, 100%, 50%)`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            }
+        }
+
+        // 爆発エフェクト
+        function createExplosion(x, y) {
+            const explosionParticles = 50;
+            for (let i = 0; i < explosionParticles; i++) {
+                const particle = new Particle(x, y);
+                const angle = (Math.PI * 2 / explosionParticles) * i;
+                const speed = Math.random() * 10 + 5;
+                particle.vx = Math.cos(angle) * speed;
+                particle.vy = Math.sin(angle) * speed;
+                particle.size = Math.random() * 5 + 2;
+                particles.push(particle);
+            }
+        }
+
+        // FPS計算
+        function calculateFPS() {
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime >= lastTime + 1000) {
+                fps = Math.round(frameCount * 1000 / (currentTime - lastTime));
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+        }
+
+        // メインループ
+        function animate() {
+            // 背景
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // パーティクル生成
+            spawnParticles();
+
+            // 接続線
+            drawConnections();
+
+            // パーティクル更新・描画
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                particle.update();
+                particle.draw();
+
+                if (particle.isDead()) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // 情報更新
+            particleCountSpan.textContent = particles.length;
+            fpsSpan.textContent = fps;
+            calculateFPS();
+
+            requestAnimationFrame(animate);
+        }
+
+        // イベントリスナー
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // タッチイベント
+        canvas.addEventListener('touchstart', (e) => {
+            isMouseDown = true;
+            const touch = e.touches[0];
+            mouseX = touch.clientX;
+            mouseY = touch.clientY;
+            e.preventDefault();
+        });
+
+        canvas.addEventListener('touchend', () => {
+            isMouseDown = false;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            mouseX = touch.clientX;
+            mouseY = touch.clientY;
+            e.preventDefault();
+        });
+
+        // コントロールパネル
+        toggleBtn.addEventListener('click', () => {
+            controls.classList.toggle('hidden');
+            toggleBtn.textContent = controls.classList.contains('hidden') ? '⚙️' : '✖️';
+        });
+
+        // スライダーイベント
+        particleSizeSlider.addEventListener('input', (e) => {
+            config.particleSize = parseFloat(e.target.value);
+            sizeValue.textContent = config.particleSize;
+        });
+
+        spawnRateSlider.addEventListener('input', (e) => {
+            config.spawnRate = parseInt(e.target.value);
+            speedValue.textContent = config.spawnRate;
+        });
+
+        maxParticlesSlider.addEventListener('input', (e) => {
+            config.maxParticles = parseInt(e.target.value);
+            maxValue.textContent = config.maxParticles;
+        });
+
+        hueRangeSlider.addEventListener('input', (e) => {
+            config.hueRange = parseInt(e.target.value);
+            hueValue.textContent = config.hueRange + '°';
+        });
+
+        // チェックボックスイベント
+        glowCheckbox.addEventListener('change', (e) => {
+            config.glowEffect = e.target.checked;
+        });
+
+        connectionsCheckbox.addEventListener('change', (e) => {
+            config.connections = e.target.checked;
+        });
+
+        attractionCheckbox.addEventListener('change', (e) => {
+            config.mouseAttraction = e.target.checked;
+            modeIndicator.textContent = e.target.checked ? '引力モード' : '通常モード';
+            modeIndicator.style.color = e.target.checked ? '#ff00ff' : '#00ffff';
+        });
+
+        // ボタンイベント
+        clearBtn.addEventListener('click', () => {
+            particles.length = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        explosionBtn.addEventListener('click', () => {
+            createExplosion(canvas.width / 2, canvas.height / 2);
+        });
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // ウィンドウリサイズ
+        window.addEventListener('resize', resizeCanvas);
+
+        // ダブルクリックで爆発
+        canvas.addEventListener('dblclick', (e) => {
+            createExplosion(e.clientX, e.clientY);
+        });
+
+        // 初期化
+        resizeCanvas();
+        animate();
+    </script>
+</body>
+</html>
