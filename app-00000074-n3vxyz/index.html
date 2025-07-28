@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数値積分法比較ツール</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: radial-gradient(ellipse at center, #0a0a0a, #1a1a2e, #16213e, #533a7d);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 360px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+        
+        .main-canvas {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(45deg, #0f0f23, #1a1a2e);
+        }
+        
+        h1 {
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #9b59b6, #3498db, #e74c3c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        
+        .control-section {
+            margin-bottom: 20px;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(155, 89, 182, 0.2);
+        }
+        
+        .control-section h3 {
+            color: #9b59b6;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        label {
+            display: block;
+            margin: 8px 0 4px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        select, input, button, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #9b59b6, #3498db);
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 12px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(155, 89, 182, 0.4);
+        }
+        
+        .method-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .method-btn {
+            padding: 8px;
+            font-size: 0.8em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            color: #fff;
+            text-align: center;
+        }
+        
+        .method-btn:hover {
+            background: rgba(155, 89, 182, 0.2);
+        }
+        
+        .method-btn.active {
+            background: rgba(155, 89, 182, 0.4);
+            border-color: #9b59b6;
+        }
+        
+        .range-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        textarea {
+            height: 80px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+        
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .graph-area {
+            flex: 1;
+            position: relative;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .results-panel {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.7);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+        
+        .stats div {
+            margin: 3px 0;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            text-align: center;
+            font-size: 0.8em;
+        }
+        
+        .comparison-table th {
+            background: rgba(155, 89, 182, 0.3);
+            color: #fff;
+        }
+        
+        .error-cell {
+            font-weight: bold;
+        }
+        
+        .error-low { color: #2ecc71; }
+        .error-medium { color: #f39c12; }
+        .error-high { color: #e74c3c; }
+        
+        .function-presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+        
+        .preset-func {
+            padding: 6px;
+            font-size: 0.7em;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(155, 89, 182, 0.2);
+            color: #ccc;
+        }
+        
+        .preset-func:hover {
+            background: rgba(155, 89, 182, 0.2);
+        }
+        
+        .visualization-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .viz-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(155, 89, 182, 0.2);
+            border: 1px solid rgba(155, 89, 182, 0.5);
+            color: #fff;
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .viz-btn:hover {
+            background: rgba(155, 89, 182, 0.4);
+        }
+        
+        @keyframes calculationPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        
+        .calculating {
+            animation: calculationPulse 1s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>∫ 数値積分法比較ツール</h1>
+            
+            <div class="control-section">
+                <h3>📐 関数設定</h3>
+                <label>積分する関数 f(x):</label>
+                <textarea id="functionInput" placeholder="例: x*x + 2*x + 1&#10;Math.sin(x)&#10;Math.exp(-x*x)">x*x</textarea>
+                
+                <div class="function-presets">
+                    <button class="preset-func" onclick="loadFunction('x*x')">x²</button>
+                    <button class="preset-func" onclick="loadFunction('Math.sin(x)')">sin(x)</button>
+                    <button class="preset-func" onclick="loadFunction('Math.exp(-x*x)')">e^(-x²)</button>
+                    <button class="preset-func" onclick="loadFunction('1/(1+x*x)')">1/(1+x²)</button>
+                    <button class="preset-func" onclick="loadFunction('Math.sqrt(1-x*x)')">√(1-x²)</button>
+                    <button class="preset-func" onclick="loadFunction('Math.log(x)')">ln(x)</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>📏 積分範囲</h3>
+                <div class="range-inputs">
+                    <div>
+                        <label>下限 a:</label>
+                        <input type="number" id="lowerBound" value="0" step="0.1">
+                    </div>
+                    <div>
+                        <label>上限 b:</label>
+                        <input type="number" id="upperBound" value="2" step="0.1">
+                    </div>
+                </div>
+                
+                <label>分割数 n:</label>
+                <input type="number" id="subdivisions" min="4" max="10000" value="100" step="4">
+                <span id="subdivisionDisplay">100</span>
+            </div>
+            
+            <div class="control-section">
+                <h3>🧮 積分手法選択</h3>
+                <div class="method-grid">
+                    <button class="method-btn active" onclick="toggleMethod('riemann')">リーマン和</button>
+                    <button class="method-btn active" onclick="toggleMethod('trapezoidal')">台形則</button>
+                    <button class="method-btn active" onclick="toggleMethod('simpson')">シンプソン則</button>
+                    <button class="method-btn active" onclick="toggleMethod('gauss')">ガウス求積</button>
+                    <button class="method-btn active" onclick="toggleMethod('romberg')">ロンベルク積分</button>
+                    <button class="method-btn active" onclick="toggleMethod('adaptive')">適応求積</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>⚡ 計算実行</h3>
+                <button onclick="calculateIntegrals()" id="calculateBtn">🔢 積分計算実行</button>
+                <button onclick="compareAccuracy()" id="accuracyBtn">📊 精度比較</button>
+                <button onclick="analyzeConvergence()" id="convergenceBtn">📈 収束解析</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>🎨 表示設定</h3>
+                <label>
+                    <input type="checkbox" id="showFunction" checked> 関数グラフ
+                </label>
+                <label>
+                    <input type="checkbox" id="showPartitions" checked> 分割表示
+                </label>
+                <label>
+                    <input type="checkbox" id="showArea" checked> 積分領域
+                </label>
+                <label>
+                    <input type="checkbox" id="animateCalculation"> 計算アニメーション
+                </label>
+                
+                <label>グラフ解像度:</label>
+                <input type="range" id="graphResolution" min="100" max="1000" value="500">
+            </div>
+            
+            <div class="control-section">
+                <h3>📋 厳密解設定</h3>
+                <label>既知の厳密解（オプション）:</label>
+                <input type="text" id="exactValue" placeholder="例: 8/3">
+                
+                <label>解析的積分式:</label>
+                <input type="text" id="analyticFormula" placeholder="例: x³/3 + x² + x">
+            </div>
+            
+            <div class="control-section">
+                <button onclick="exportResults()">💾 結果エクスポート</button>
+                <button onclick="generateReport()">📄 レポート生成</button>
+            </div>
+        </div>
+        
+        <div class="main-canvas">
+            <div class="canvas-container">
+                <div class="graph-area">
+                    <canvas id="canvas"></canvas>
+                    
+                    <div class="stats">
+                        <div>関数: <span id="currentFunction">f(x) = x²</span></div>
+                        <div>積分区間: [<span id="intervalDisplay">0, 2</span>]</div>
+                        <div>分割数: <span id="nDisplay">100</span></div>
+                        <div>計算時間: <span id="calcTime">0</span>ms</div>
+                        <div>選択手法: <span id="activeMethodsDisplay">6</span>種類</div>
+                    </div>
+                    
+                    <div class="visualization-controls">
+                        <button class="viz-btn" onclick="zoomIn()">+</button>
+                        <button class="viz-btn" onclick="zoomOut()">-</button>
+                        <button class="viz-btn" onclick="resetView()">⌂</button>
+                        <button class="viz-btn" onclick="toggleAnimation()">🎬</button>
+                    </div>
+                </div>
+                
+                <div class="results-panel">
+                    <h3>🎯 積分結果比較</h3>
+                    <table class="comparison-table" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>手法</th>
+                                <th>積分値</th>
+                                <th>計算時間(ms)</th>
+                                <th>絶対誤差</th>
+                                <th>相対誤差(%)</th>
+                                <th>収束次数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                            <!-- 動的生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let currentFunction = (x) => x * x;
+        let functionString = 'x*x';
+        let activeMethods = new Set(['riemann', 'trapezoidal', 'simpson', 'gauss', 'romberg', 'adaptive']);
+        let camera = { x: 0, y: 0, scaleX: 1, scaleY: 1 };
+        let results = {};
+        let isAnimating = false;
+        
+        // 数値積分手法の実装
+        const integrationMethods = {
+            riemann: function(f, a, b, n) {
+                const h = (b - a) / n;
+                let sum = 0;
+                for (let i = 0; i < n; i++) {
+                    const x = a + (i + 0.5) * h; // 中点公式
+                    sum += f(x);
+                }
+                return h * sum;
+            },
+            
+            trapezoidal: function(f, a, b, n) {
+                const h = (b - a) / n;
+                let sum = (f(a) + f(b)) / 2;
+                for (let i = 1; i < n; i++) {
+                    const x = a + i * h;
+                    sum += f(x);
+                }
+                return h * sum;
+            },
+            
+            simpson: function(f, a, b, n) {
+                if (n % 2 !== 0) n++; // 偶数にする
+                const h = (b - a) / n;
+                let sum = f(a) + f(b);
+                
+                for (let i = 1; i < n; i++) {
+                    const x = a + i * h;
+                    sum += (i % 2 === 0 ? 2 : 4) * f(x);
+                }
+                return (h / 3) * sum;
+            },
+            
+            gauss: function(f, a, b, n = 5) {
+                // ガウス・ルジャンドル求積（5点公式）
+                const points = [
+                    {x: -0.9061798459, w: 0.2369268850},
+                    {x: -0.5384693101, w: 0.4786286705},
+                    {x: 0, w: 0.5688888889},
+                    {x: 0.5384693101, w: 0.4786286705},
+                    {x: 0.9061798459, w: 0.2369268850}
+                ];
+                
+                let sum = 0;
+                const c1 = (b - a) / 2;
+                const c2 = (b + a) / 2;
+                
+                for (const point of points) {
+                    const x = c1 * point.x + c2;
+                    sum += point.w * f(x);
+                }
+                return c1 * sum;
+            },
+            
+            romberg: function(f, a, b, maxLevel = 6) {
+                const R = Array(maxLevel).fill().map(() => Array(maxLevel).fill(0));
+                
+                // 初期値（台形則）
+                R[0][0] = (b - a) * (f(a) + f(b)) / 2;
+                
+                for (let i = 1; i < maxLevel; i++) {
+                    const h = (b - a) / Math.pow(2, i);
+                    let sum = 0;
+                    
+                    for (let k = 1; k < Math.pow(2, i); k += 2) {
+                        sum += f(a + k * h);
+                    }
+                    
+                    R[i][0] = R[i-1][0] / 2 + h * sum;
+                    
+                    // リチャードソン外挿
+                    for (let j = 1; j <= i; j++) {
+                        const power4 = Math.pow(4, j);
+                        R[i][j] = (power4 * R[i][j-1] - R[i-1][j-1]) / (power4 - 1);
+                    }
+                }
+                
+                return R[maxLevel-1][maxLevel-1];
+            },
+            
+            adaptive: function(f, a, b, tol = 1e-6) {
+                function adaptiveStep(a, b, fa, fb, fc, S) {
+                    const c = (a + b) / 2;
+                    const h = b - a;
+                    const d = (a + c) / 2;
+                    const e = (c + b) / 2;
+                    const fd = f(d);
+                    const fe = f(e);
+                    
+                    const S1 = h * (fa + 4*fd + fc) / 12;
+                    const S2 = h * (fc + 4*fe + fb) / 12;
+                    const S_new = S1 + S2;
+                    
+                    if (Math.abs(S_new - S) <= 15 * tol) {
+                        return S_new + (S_new - S) / 15;
+                    } else {
+                        return adaptiveStep(a, c, fa, fd, fc, S1) + 
+                               adaptiveStep(c, b, fc, fe, fb, S2);
+                    }
+                }
+                
+                const c = (a + b) / 2;
+                const fa = f(a);
+                const fb = f(b);
+                const fc = f(c);
+                const S = (b - a) * (fa + 4*fc + fb) / 6;
+                
+                return adaptiveStep(a, b, fa, fb, fc, S);
+            }
+        };
+        
+        // キャンバス初期化
+        function initCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        
+        // 関数パース
+        function parseFunction(str) {
+            try {
+                const sanitized = str.replace(/\^/g, '**').replace(/ln/g, 'Math.log').replace(/sqrt/g, 'Math.sqrt');
+                return new Function('x', `return ${sanitized}`);
+            } catch (e) {
+                console.error('関数解析エラー:', e);
+                return (x) => x * x; // デフォルト
+            }
+        }
+        
+        // 関数読み込み
+        function loadFunction(funcStr) {
+            document.getElementById('functionInput').value = funcStr;
+            functionString = funcStr;
+            currentFunction = parseFunction(funcStr);
+            document.getElementById('currentFunction').textContent = `f(x) = ${funcStr}`;
+            draw();
+        }
+        
+        // 手法選択切り替え
+        function toggleMethod(method) {
+            const btn = event.target;
+            if (activeMethods.has(method)) {
+                activeMethods.delete(method);
+                btn.classList.remove('active');
+            } else {
+                activeMethods.add(method);
+                btn.classList.add('active');
+            }
+            
+            document.getElementById('activeMethodsDisplay').textContent = activeMethods.size;
+        }
+        
+        // 積分計算
+        async function calculateIntegrals() {
+            const btn = document.getElementById('calculateBtn');
+            btn.classList.add('calculating');
+            btn.disabled = true;
+            
+            const funcStr = document.getElementById('functionInput').value;
+            const a = parseFloat(document.getElementById('lowerBound').value);
+            const b = parseFloat(document.getElementById('upperBound').value);
+            const n = parseInt(document.getElementById('subdivisions').value);
+            
+            functionString = funcStr;
+            currentFunction = parseFunction(funcStr);
+            
+            const startTime = performance.now();
+            results = {};
+            
+            // 各手法で計算
+            for (const method of activeMethods) {
+                const methodStartTime = performance.now();
+                try {
+                    const result = integrationMethods[method](currentFunction, a, b, n);
+                    const methodEndTime = performance.now();
+                    
+                    results[method] = {
+                        value: result,
+                        time: methodEndTime - methodStartTime,
+                        error: null,
+                        relativeError: null
+                    };
+                } catch (e) {
+                    console.error(`${method}でエラー:`, e);
+                    results[method] = {
+                        value: NaN,
+                        time: 0,
+                        error: NaN,
+                        relativeError: NaN
+                    };
+                }
+                
+                // アニメーション用の遅延
+                if (document.getElementById('animateCalculation').checked) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    updateResultsTable();
+                }
+            }
+            
+            const endTime = performance.now();
+            document.getElementById('calcTime').textContent = Math.round(endTime - startTime);
+            
+            // 厳密解がある場合は誤差計算
+            const exactValueStr = document.getElementById('exactValue').value;
+            if (exactValueStr) {
+                const exactValue = evaluateExpression(exactValueStr);
+                for (const method in results) {
+                    const result = results[method];
+                    result.error = Math.abs(result.value - exactValue);
+                    result.relativeError = (result.error / Math.abs(exactValue)) * 100;
+                }
+            }
+            
+            updateResultsTable();
+            updateStats();
+            draw();
+            
+            btn.classList.remove('calculating');
+            btn.disabled = false;
+        }
+        
+        // 精度比較
+        async function compareAccuracy() {
+            const subdivisions = [10, 20, 50, 100, 200, 500, 1000];
+            const methods = Array.from(activeMethods);
+            const accuracyData = {};
+            
+            for (const method of methods) {
+                accuracyData[method] = [];
+                
+                for (const n of subdivisions) {
+                    const a = parseFloat(document.getElementById('lowerBound').value);
+                    const b = parseFloat(document.getElementById('upperBound').value);
+                    
+                    const result = integrationMethods[method](currentFunction, a, b, n);
+                    accuracyData[method].push({n, result});
+                }
+            }
+            
+            // 収束グラフを描画（メイン描画に組み込み）
+            draw();
+            console.log('精度比較完了:', accuracyData);
+        }
+        
+        // 収束解析
+        function analyzeConvergence() {
+            const maxN = parseInt(document.getElementById('subdivisions').value);
+            const testSizes = [10, 20, 50, 100, 200, 500, maxN];
+            
+            const convergenceData = {};
+            
+            for (const method of activeMethods) {
+                convergenceData[method] = [];
+                
+                for (const n of testSizes) {
+                    const a = parseFloat(document.getElementById('lowerBound').value);
+                    const b = parseFloat(document.getElementById('upperBound').value);
+                    
+                    try {
+                        const result = integrationMethods[method](currentFunction, a, b, n);
+                        convergenceData[method].push({n, result});
+                    } catch (e) {
+                        console.error(`収束解析エラー (${method}, n=${n}):`, e);
+                    }
+                }
+            }
+            
+            console.log('収束解析完了:', convergenceData);
+            // 収束次数の推定などをここに追加
+        }
+        
+        // 結果テーブル更新
+        function updateResultsTable() {
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            
+            const methodNames = {
+                riemann: 'リーマン和',
+                trapezoidal: '台形則',
+                simpson: 'シンプソン則',
+                gauss: 'ガウス求積',
+                romberg: 'ロンベルク積分',
+                adaptive: '適応求積'
+            };
+            
+            for (const method in results) {
+                const result = results[method];
+                const row = tbody.insertRow();
+                
+                row.insertCell(0).textContent = methodNames[method] || method;
+                row.insertCell(1).textContent = isNaN(result.value) ? 'エラー' : result.value.toFixed(8);
+                row.insertCell(2).textContent = result.time.toFixed(2);
+                
+                const errorCell = row.insertCell(3);
+                const relErrorCell = row.insertCell(4);
+                const orderCell = row.insertCell(5);
+                
+                if (result.error !== null && !isNaN(result.error)) {
+                    errorCell.textContent = result.error.toExponential(3);
+                    relErrorCell.textContent = result.relativeError.toFixed(4);
+                    
+                    // 誤差による色分け
+                    const errorClass = result.error < 1e-6 ? 'error-low' : 
+                                     result.error < 1e-3 ? 'error-medium' : 'error-high';
+                    errorCell.className = `error-cell ${errorClass}`;
+                    relErrorCell.className = `error-cell ${errorClass}`;
+                } else {
+                    errorCell.textContent = '—';
+                    relErrorCell.textContent = '—';
+                }
+                
+                // 収束次数（理論値）
+                const theoreticalOrder = {
+                    riemann: 2,
+                    trapezoidal: 2,
+                    simpson: 4,
+                    gauss: '高次',
+                    romberg: '高次',
+                    adaptive: '適応'
+                };
+                orderCell.textContent = theoreticalOrder[method] || '—';
+            }
+        }
+        
+        // 統計更新
+        function updateStats() {
+            const a = document.getElementById('lowerBound').value;
+            const b = document.getElementById('upperBound').value;
+            const n = document.getElementById('subdivisions').value;
+            
+            document.getElementById('intervalDisplay').textContent = `${a}, ${b}`;
+            document.getElementById('nDisplay').textContent = n;
+            document.getElementById('subdivisionDisplay').textContent = n;
+        }
+        
+        // メイン描画関数
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 背景グラデーション
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0,
+                canvas.width/2, canvas.height/2, canvas.width/2
+            );
+            gradient.addColorStop(0, 'rgba(15, 15, 35, 0.1)');
+            gradient.addColorStop(1, 'rgba(83, 58, 125, 0.3)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const a = parseFloat(document.getElementById('lowerBound').value);
+            const b = parseFloat(document.getElementById('upperBound').value);
+            const n = parseInt(document.getElementById('subdivisions').value);
+            
+            setupCoordinateSystem(a, b);
+            
+            if (document.getElementById('showArea').checked) {
+                drawIntegrationArea(a, b, n);
+            }
+            
+            if (document.getElementById('showFunction').checked) {
+                drawFunction(a, b);
+            }
+            
+            if (document.getElementById('showPartitions').checked) {
+                drawPartitions(a, b, n);
+            }
+            
+            drawAxes(a, b);
+        }
+        
+        // 座標系設定
+        function setupCoordinateSystem(a, b) {
+            const padding = 60;
+            const width = canvas.width - 2 * padding;
+            const height = canvas.height - 2 * padding;
+            
+            camera.scaleX = width / (b - a);
+            
+            // Y軸のスケール自動調整
+            let minY = Infinity;
+            let maxY = -Infinity;
+            
+            for (let x = a; x <= b; x += (b - a) / 100) {
+                try {
+                    const y = currentFunction(x);
+                    if (isFinite(y)) {
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                } catch (e) {}
+            }
+            
+            if (minY === Infinity) {
+                minY = -1;
+                maxY = 1;
+            }
+            
+            const yRange = maxY - minY;
+            const yPadding = yRange * 0.1;
+            minY -= yPadding;
+            maxY += yPadding;
+            
+            camera.scaleY = height / (maxY - minY);
+            camera.offsetX = padding - a * camera.scaleX;
+            camera.offsetY = padding + maxY * camera.scaleY;
+        }
+        
+        // 関数描画
+        function drawFunction(a, b) {
+            const resolution = parseInt(document.getElementById('graphResolution').value);
+            const step = (b - a) / resolution;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            
+            let firstPoint = true;
+            for (let x = a; x <= b; x += step) {
+                try {
+                    const y = currentFunction(x);
+                    if (isFinite(y)) {
+                        const canvasX = camera.offsetX + x * camera.scaleX;
+                        const canvasY = camera.offsetY - y * camera.scaleY;
+                        
+                        if (firstPoint) {
+                            ctx.moveTo(canvasX, canvasY);
+                            firstPoint = false;
+                        } else {
+                            ctx.lineTo(canvasX, canvasY);
+                        }
+                    }
+                } catch (e) {}
+            }
+            
+            ctx.stroke();
+        }
+        
+        // 積分領域描画
+        function drawIntegrationArea(a, b, n) {
+            const step = (b - a) / n;
+            
+            ctx.fillStyle = 'rgba(155, 89, 182, 0.2)';
+            
+            for (let i = 0; i < n; i++) {
+                const x1 = a + i * step;
+                const x2 = a + (i + 1) * step;
+                
+                try {
+                    const y1 = currentFunction(x1);
+                    const y2 = currentFunction(x2);
+                    
+                    if (isFinite(y1) && isFinite(y2)) {
+                        const canvasX1 = camera.offsetX + x1 * camera.scaleX;
+                        const canvasX2 = camera.offsetX + x2 * camera.scaleX;
+                        const canvasY1 = camera.offsetY - y1 * camera.scaleY;
+                        const canvasY2 = camera.offsetY - y2 * camera.scaleY;
+                        const canvasY0 = camera.offsetY;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(canvasX1, canvasY0);
+                        ctx.lineTo(canvasX1, canvasY1);
+                        ctx.lineTo(canvasX2, canvasY2);
+                        ctx.lineTo(canvasX2, canvasY0);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                } catch (e) {}
+            }
+        }
+        
+        // 分割表示
+        function drawPartitions(a, b, n) {
+            const step = (b - a) / n;
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= n; i++) {
+                const x = a + i * step;
+                const canvasX = camera.offsetX + x * camera.scaleX;
+                
+                ctx.beginPath();
+                ctx.moveTo(canvasX, 0);
+                ctx.lineTo(canvasX, canvas.height);
+                ctx.stroke();
+            }
+        }
+        
+        // 軸描画
+        function drawAxes(a, b) {
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            
+            // X軸
+            const y0 = camera.offsetY;
+            ctx.beginPath();
+            ctx.moveTo(0, y0);
+            ctx.lineTo(canvas.width, y0);
+            ctx.stroke();
+            
+            // Y軸
+            const x0 = camera.offsetX;
+            ctx.beginPath();
+            ctx.moveTo(x0, 0);
+            ctx.lineTo(x0, canvas.height);
+            ctx.stroke();
+            
+            // 目盛り
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            // X軸目盛り
+            const xStep = (b - a) / 10;
+            for (let i = 0; i <= 10; i++) {
+                const x = a + i * xStep;
+                const canvasX = camera.offsetX + x * camera.scaleX;
+                ctx.fillText(x.toFixed(1), canvasX, y0 + 20);
+            }
+        }
+        
+        // 式評価
+        function evaluateExpression(expr) {
+            try {
+                // 安全な評価（基本的な数学演算のみ）
+                const sanitized = expr.replace(/[^0-9+\-*/().\s]/g, '');
+                return Function(`"use strict"; return (${sanitized})`)();
+            } catch (e) {
+                return NaN;
+            }
+        }
+        
+        // エクスポート機能
+        function exportResults() {
+            const data = {
+                function: functionString,
+                interval: [
+                    parseFloat(document.getElementById('lowerBound').value),
+                    parseFloat(document.getElementById('upperBound').value)
+                ],
+                subdivisions: parseInt(document.getElementById('subdivisions').value),
+                results: results,
+                timestamp: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `integration_results_${Date.now()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // レポート生成
+        function generateReport() {
+            let report = `数値積分計算レポート\n`;
+            report += `生成日時: ${new Date().toLocaleString()}\n\n`;
+            report += `関数: f(x) = ${functionString}\n`;
+            report += `積分区間: [${document.getElementById('lowerBound').value}, ${document.getElementById('upperBound').value}]\n`;
+            report += `分割数: ${document.getElementById('subdivisions').value}\n\n`;
+            report += `結果:\n`;
+            
+            for (const method in results) {
+                const result = results[method];
+                report += `${method}: ${result.value.toFixed(8)} (${result.time.toFixed(2)}ms)\n`;
+            }
+            
+            const reportBlob = new Blob([report], {type: 'text/plain'});
+            const url = URL.createObjectURL(reportBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `integration_report_${Date.now()}.txt`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // ビューコントロール
+        function zoomIn() { camera.scaleX *= 1.2; camera.scaleY *= 1.2; draw(); }
+        function zoomOut() { camera.scaleX /= 1.2; camera.scaleY /= 1.2; draw(); }
+        function resetView() { draw(); }
+        function toggleAnimation() { isAnimating = !isAnimating; }
+        
+        // イベントリスナー
+        document.getElementById('functionInput').addEventListener('input', function() {
+            const funcStr = this.value;
+            if (funcStr.trim()) {
+                loadFunction(funcStr);
+            }
+        });
+        
+        ['lowerBound', 'upperBound', 'subdivisions'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                updateStats();
+                draw();
+            });
+        });
+        
+        // 初期化
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+        updateStats();
+        draw();
+    </script>
+</body>
+</html>

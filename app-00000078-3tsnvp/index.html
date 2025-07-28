@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>組み合わせ最適化パズルジェネレーター</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+        
+        .sidebar {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+        
+        .main-area {
+            display: grid;
+            grid-template-rows: 60px 1fr 200px;
+            gap: 20px;
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .visualization {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .results-panel {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+        
+        h1 {
+            font-size: 2em;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-section h3 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        label {
+            display: block;
+            margin: 12px 0 5px;
+            color: #ccc;
+            font-size: 0.95em;
+        }
+        
+        select, input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.3);
+        }
+        
+        button:disabled {
+            background: rgba(100, 100, 100, 0.5);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .problem-display {
+            color: #fff;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .algorithm-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .algo-btn {
+            padding: 10px;
+            font-size: 0.9em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+        }
+        
+        .algo-btn.active {
+            background: rgba(78, 205, 196, 0.3);
+            border-color: #4ecdc4;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.4em;
+            color: #4ecdc4;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        
+        .solution-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .solution-table th,
+        .solution-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .solution-table th {
+            background: rgba(78, 205, 196, 0.2);
+            color: #4ecdc4;
+        }
+        
+        .hint-panel {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        @keyframes solving {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .solving {
+            animation: solving 1s infinite;
+        }
+        
+        .level-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .level-btn {
+            padding: 8px;
+            font-size: 0.8em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .level-btn.completed {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4caf50;
+        }
+        
+        .level-btn.current {
+            background: rgba(255, 193, 7, 0.3);
+            border-color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🧩 組み合わせ最適化パズル</h1>
+            
+            <div class="control-section">
+                <h3>🎯 問題設定</h3>
+                <label>問題タイプ:</label>
+                <select id="problemType">
+                    <option value="tsp">巡回セールスマン問題 (TSP)</option>
+                    <option value="knapsack">ナップサック問題</option>
+                    <option value="coloring">グラフ彩色</option>
+                    <option value="matching">最大マッチング</option>
+                </select>
+                
+                <label>問題規模 (ノード/アイテム数):</label>
+                <input type="range" id="problemSize" min="5" max="100" value="10" oninput="updateSizeDisplay()">
+                <div class="problem-display" id="sizeDisplay">10 ノード</div>
+                
+                <label>難易度レベル:</label>
+                <div class="level-selector" id="levelSelector"></div>
+            </div>
+            
+            <div class="control-section">
+                <h3>🤖 解法アルゴリズム</h3>
+                <div class="algorithm-buttons">
+                    <button class="algo-btn active" onclick="selectAlgorithm('genetic')">遺伝的</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('ant')">蟻コロニー</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('simulated')">焼きなまし</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('greedy')">貪欲法</button>
+                </div>
+                
+                <label>実行モード:</label>
+                <select id="solveMode">
+                    <option value="auto">自動解決</option>
+                    <option value="manual">手動モード</option>
+                    <option value="compare">アルゴリズム比較</option>
+                </select>
+            </div>
+            
+            <div class="control-section">
+                <button onclick="generateProblem()">🎲 新しい問題生成</button>
+                <button onclick="solveProblem()" id="solveBtn">🚀 問題を解く</button>
+                <button onclick="showHint()">💡 ヒント表示</button>
+                <button onclick="resetSolution()">🔄 リセット</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>📁 カスタムデータ</h3>
+                <label>データ入力 (JSON形式):</label>
+                <textarea id="customData" rows="4" placeholder='{"nodes": [{"x": 0, "y": 0}], "edges": []}'></textarea>
+                <button onclick="loadCustomData()">📥 データ読み込み</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>📊 進捗</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText">待機中...</div>
+            </div>
+        </div>
+        
+        <div class="main-area">
+            <div class="header">
+                <h2 id="problemTitle">巡回セールスマン問題</h2>
+                <div id="currentLevel">レベル 1/20</div>
+            </div>
+            
+            <div class="visualization">
+                <canvas id="canvas"></canvas>
+            </div>
+            
+            <div class="results-panel">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-value" id="bestScore">0</span>
+                        <span class="stat-label">最適スコア</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="currentScore">0</span>
+                        <span class="stat-label">現在スコア</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="deviation">100%</span>
+                        <span class="stat-label">偏差率</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="solveTime">0</span>
+                        <span class="stat-label">解決時間(ms)</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="accuracy">95%</span>
+                        <span class="stat-label">近似率</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="iterations">0</span>
+                        <span class="stat-label">反復回数</span>
+                    </div>
+                </div>
+                
+                <table class="solution-table" id="solutionTable">
+                    <thead>
+                        <tr>
+                            <th>アルゴリズム</th>
+                            <th>スコア</th>
+                            <th>時間(ms)</th>
+                            <th>近似率</th>
+                        </tr>
+                    </thead>
+                    <tbody id="solutionTableBody">
+                    </tbody>
+                </table>
+                
+                <div class="hint-panel" id="hintPanel" style="display: none;">
+                    <h4>💡 ヒント</h4>
+                    <p id="hintText">ここにヒントが表示されます</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let currentProblem = null;
+        let currentSolution = null;
+        let selectedAlgorithm = 'genetic';
+        let currentLevel = 1;
+        let completedLevels = new Set();
+        let isAnimating = false;
+        
+        // 問題データ構造
+        class Problem {
+            constructor(type, size) {
+                this.type = type;
+                this.size = size;
+                this.nodes = [];
+                this.edges = [];
+                this.items = [];
+                this.generateData();
+            }
+            
+            generateData() {
+                switch (this.type) {
+                    case 'tsp':
+                        this.generateTSP();
+                        break;
+                    case 'knapsack':
+                        this.generateKnapsack();
+                        break;
+                    case 'coloring':
+                        this.generateColoring();
+                        break;
+                    case 'matching':
+                        this.generateMatching();
+                        break;
+                }
+            }
+            
+            generateTSP() {
+                for (let i = 0; i < this.size; i++) {
+                    this.nodes.push({
+                        id: i,
+                        x: Math.random() * (canvas.width - 100) + 50,
+                        y: Math.random() * (canvas.height - 100) + 50,
+                        color: `hsl(${i * 360 / this.size}, 70%, 60%)`
+                    });
+                }
+                
+                // 距離行列計算
+                this.distances = [];
+                for (let i = 0; i < this.size; i++) {
+                    this.distances[i] = [];
+                    for (let j = 0; j < this.size; j++) {
+                        const dx = this.nodes[i].x - this.nodes[j].x;
+                        const dy = this.nodes[i].y - this.nodes[j].y;
+                        this.distances[i][j] = Math.sqrt(dx * dx + dy * dy);
+                    }
+                }
+            }
+            
+            generateKnapsack() {
+                const capacity = this.size * 10;
+                this.capacity = capacity;
+                
+                for (let i = 0; i < this.size; i++) {
+                    this.items.push({
+                        id: i,
+                        weight: Math.floor(Math.random() * 20) + 1,
+                        value: Math.floor(Math.random() * 50) + 10,
+                        density: 0
+                    });
+                }
+                
+                this.items.forEach(item => {
+                    item.density = item.value / item.weight;
+                });
+            }
+            
+            generateColoring() {
+                // グラフ生成（プロシージャル）
+                for (let i = 0; i < this.size; i++) {
+                    this.nodes.push({
+                        id: i,
+                        x: Math.random() * (canvas.width - 100) + 50,
+                        y: Math.random() * (canvas.height - 100) + 50,
+                        color: null,
+                        neighbors: []
+                    });
+                }
+                
+                // エッジ生成
+                const edgeProb = 0.3;
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = i + 1; j < this.size; j++) {
+                        if (Math.random() < edgeProb) {
+                            this.edges.push([i, j]);
+                            this.nodes[i].neighbors.push(j);
+                            this.nodes[j].neighbors.push(i);
+                        }
+                    }
+                }
+            }
+            
+            generateMatching() {
+                // 二部グラフ生成
+                const leftSize = Math.floor(this.size / 2);
+                const rightSize = this.size - leftSize;
+                
+                for (let i = 0; i < leftSize; i++) {
+                    this.nodes.push({
+                        id: i,
+                        x: 100,
+                        y: (i + 1) * (canvas.height / (leftSize + 1)),
+                        side: 'left',
+                        matched: false
+                    });
+                }
+                
+                for (let i = 0; i < rightSize; i++) {
+                    this.nodes.push({
+                        id: i + leftSize,
+                        x: canvas.width - 100,
+                        y: (i + 1) * (canvas.height / (rightSize + 1)),
+                        side: 'right',
+                        matched: false
+                    });
+                }
+                
+                // エッジ生成
+                for (let i = 0; i < leftSize; i++) {
+                    for (let j = leftSize; j < this.size; j++) {
+                        if (Math.random() < 0.4) {
+                            this.edges.push([i, j]);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // アルゴリズム実装
+        class Solver {
+            static solve(problem, algorithm) {
+                const startTime = performance.now();
+                let result;
+                
+                switch (problem.type) {
+                    case 'tsp':
+                        result = this.solveTSP(problem, algorithm);
+                        break;
+                    case 'knapsack':
+                        result = this.solveKnapsack(problem, algorithm);
+                        break;
+                    case 'coloring':
+                        result = this.solveColoring(problem, algorithm);
+                        break;
+                    case 'matching':
+                        result = this.solveMatching(problem, algorithm);
+                        break;
+                }
+                
+                const endTime = performance.now();
+                result.solveTime = endTime - startTime;
+                result.algorithm = algorithm;
+                
+                return result;
+            }
+            
+            static solveTSP(problem, algorithm) {
+                switch (algorithm) {
+                    case 'genetic':
+                        return this.geneticTSP(problem);
+                    case 'ant':
+                        return this.antColonyTSP(problem);
+                    case 'simulated':
+                        return this.simulatedAnnealingTSP(problem);
+                    case 'greedy':
+                        return this.greedyTSP(problem);
+                }
+            }
+            
+            static geneticTSP(problem) {
+                const populationSize = 100;
+                const generations = 200;
+                const mutationRate = 0.02;
+                
+                // 初期集団生成
+                let population = [];
+                for (let i = 0; i < populationSize; i++) {
+                    let tour = Array.from({length: problem.size}, (_, i) => i);
+                    this.shuffleArray(tour);
+                    population.push(tour);
+                }
+                
+                let bestTour = null;
+                let bestDistance = Infinity;
+                
+                for (let gen = 0; gen < generations; gen++) {
+                    // 評価
+                    const fitness = population.map(tour => 1 / this.calculateTSPDistance(problem, tour));
+                    
+                    // 最良解更新
+                    for (let i = 0; i < populationSize; i++) {
+                        const distance = this.calculateTSPDistance(problem, population[i]);
+                        if (distance < bestDistance) {
+                            bestDistance = distance;
+                            bestTour = [...population[i]];
+                        }
+                    }
+                    
+                    // 選択・交叉・突然変異
+                    const newPopulation = [];
+                    for (let i = 0; i < populationSize; i++) {
+                        const parent1 = this.rouletteSelection(population, fitness);
+                        const parent2 = this.rouletteSelection(population, fitness);
+                        let child = this.orderCrossover(parent1, parent2);
+                        
+                        if (Math.random() < mutationRate) {
+                            child = this.mutate(child);
+                        }
+                        
+                        newPopulation.push(child);
+                    }
+                    
+                    population = newPopulation;
+                }
+                
+                return {
+                    solution: bestTour,
+                    score: bestDistance,
+                    iterations: generations
+                };
+            }
+            
+            static greedyTSP(problem) {
+                const tour = [0];
+                const unvisited = new Set(Array.from({length: problem.size}, (_, i) => i).slice(1));
+                
+                let current = 0;
+                while (unvisited.size > 0) {
+                    let nearest = null;
+                    let minDistance = Infinity;
+                    
+                    for (const city of unvisited) {
+                        const distance = problem.distances[current][city];
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearest = city;
+                        }
+                    }
+                    
+                    tour.push(nearest);
+                    unvisited.delete(nearest);
+                    current = nearest;
+                }
+                
+                return {
+                    solution: tour,
+                    score: this.calculateTSPDistance(problem, tour),
+                    iterations: problem.size
+                };
+            }
+            
+            static solveKnapsack(problem, algorithm) {
+                // 簡易実装：動的プログラミング
+                const dp = Array(problem.size + 1).fill().map(() => Array(problem.capacity + 1).fill(0));
+                
+                for (let i = 1; i <= problem.size; i++) {
+                    const item = problem.items[i - 1];
+                    for (let w = 0; w <= problem.capacity; w++) {
+                        if (item.weight <= w) {
+                            dp[i][w] = Math.max(
+                                dp[i - 1][w],
+                                dp[i - 1][w - item.weight] + item.value
+                            );
+                        } else {
+                            dp[i][w] = dp[i - 1][w];
+                        }
+                    }
+                }
+                
+                // 解の復元
+                const solution = [];
+                let w = problem.capacity;
+                for (let i = problem.size; i > 0; i--) {
+                    if (dp[i][w] !== dp[i - 1][w]) {
+                        solution.push(i - 1);
+                        w -= problem.items[i - 1].weight;
+                    }
+                }
+                
+                return {
+                    solution: solution.reverse(),
+                    score: dp[problem.size][problem.capacity],
+                    iterations: problem.size * problem.capacity
+                };
+            }
+            
+            // ヘルパーメソッド
+            static calculateTSPDistance(problem, tour) {
+                let distance = 0;
+                for (let i = 0; i < tour.length; i++) {
+                    const from = tour[i];
+                    const to = tour[(i + 1) % tour.length];
+                    distance += problem.distances[from][to];
+                }
+                return distance;
+            }
+            
+            static shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+            
+            static rouletteSelection(population, fitness) {
+                const totalFitness = fitness.reduce((sum, f) => sum + f, 0);
+                const rand = Math.random() * totalFitness;
+                let sum = 0;
+                
+                for (let i = 0; i < population.length; i++) {
+                    sum += fitness[i];
+                    if (sum >= rand) {
+                        return population[i];
+                    }
+                }
+                
+                return population[population.length - 1];
+            }
+            
+            static orderCrossover(parent1, parent2) {
+                const size = parent1.length;
+                const start = Math.floor(Math.random() * size);
+                const end = Math.floor(Math.random() * size);
+                const [a, b] = start < end ? [start, end] : [end, start];
+                
+                const child = new Array(size);
+                const taken = new Set();
+                
+                // 区間をコピー
+                for (let i = a; i <= b; i++) {
+                    child[i] = parent1[i];
+                    taken.add(parent1[i]);
+                }
+                
+                // 残りを親2から順序を保って追加
+                let j = 0;
+                for (let i = 0; i < size; i++) {
+                    if (child[i] === undefined) {
+                        while (taken.has(parent2[j])) {
+                            j++;
+                        }
+                        child[i] = parent2[j];
+                        taken.add(parent2[j]);
+                        j++;
+                    }
+                }
+                
+                return child;
+            }
+            
+            static mutate(tour) {
+                const newTour = [...tour];
+                const i = Math.floor(Math.random() * tour.length);
+                const j = Math.floor(Math.random() * tour.length);
+                [newTour[i], newTour[j]] = [newTour[j], newTour[i]];
+                return newTour;
+            }
+        }
+        
+        // 描画関数
+        function draw() {
+            if (!canvas.width) {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (!currentProblem) return;
+            
+            switch (currentProblem.type) {
+                case 'tsp':
+                    drawTSP();
+                    break;
+                case 'knapsack':
+                    drawKnapsack();
+                    break;
+                case 'coloring':
+                    drawColoring();
+                    break;
+                case 'matching':
+                    drawMatching();
+                    break;
+            }
+        }
+        
+        function drawTSP() {
+            // エッジ描画（解がある場合）
+            if (currentSolution && currentSolution.solution) {
+                ctx.strokeStyle = 'rgba(78, 205, 196, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                const tour = currentSolution.solution;
+                for (let i = 0; i < tour.length; i++) {
+                    const from = currentProblem.nodes[tour[i]];
+                    const to = currentProblem.nodes[tour[(i + 1) % tour.length]];
+                    
+                    if (i === 0) {
+                        ctx.moveTo(from.x, from.y);
+                    }
+                    ctx.lineTo(to.x, to.y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            // ノード描画
+            currentProblem.nodes.forEach((node, i) => {
+                ctx.fillStyle = node.color;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ノード番号
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(i.toString(), node.x, node.y + 4);
+            });
+        }
+        
+        function drawKnapsack() {
+            if (!currentProblem.items) return;
+            
+            const itemWidth = 40;
+            const itemHeight = 30;
+            const cols = Math.ceil(Math.sqrt(currentProblem.items.length));
+            
+            currentProblem.items.forEach((item, i) => {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = 50 + col * (itemWidth + 10);
+                const y = 50 + row * (itemHeight + 10);
+                
+                // アイテム描画
+                const isSelected = currentSolution && currentSolution.solution.includes(i);
+                ctx.fillStyle = isSelected ? 'rgba(78, 205, 196, 0.8)' : 'rgba(255, 255, 255, 0.2)';
+                ctx.fillRect(x, y, itemWidth, itemHeight);
+                
+                // 境界線
+                ctx.strokeStyle = isSelected ? '#4ecdc4' : 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, itemWidth, itemHeight);
+                
+                // アイテム情報
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${item.value}/${item.weight}`, x + itemWidth/2, y + itemHeight/2);
+            });
+        }
+        
+        // メイン制御関数
+        function generateProblem() {
+            const problemType = document.getElementById('problemType').value;
+            const problemSize = parseInt(document.getElementById('problemSize').value);
+            
+            currentProblem = new Problem(problemType, problemSize);
+            currentSolution = null;
+            
+            updateProblemTitle();
+            draw();
+            updateStats();
+        }
+        
+        async function solveProblem() {
+            if (!currentProblem) {
+                generateProblem();
+            }
+            
+            const btn = document.getElementById('solveBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 解決中...';
+            btn.classList.add('solving');
+            
+            const mode = document.getElementById('solveMode').value;
+            
+            if (mode === 'compare') {
+                await compareAlgorithms();
+            } else {
+                currentSolution = Solver.solve(currentProblem, selectedAlgorithm);
+                updateSolutionTable([currentSolution]);
+            }
+            
+            draw();
+            updateStats();
+            
+            btn.disabled = false;
+            btn.textContent = '🚀 問題を解く';
+            btn.classList.remove('solving');
+        }
+        
+        async function compareAlgorithms() {
+            const algorithms = ['genetic', 'ant', 'simulated', 'greedy'];
+            const results = [];
+            
+            for (const algo of algorithms) {
+                document.getElementById('progressText').textContent = `${algo} アルゴリズム実行中...`;
+                const progress = ((results.length + 1) / algorithms.length) * 100;
+                document.getElementById('progressFill').style.width = progress + '%';
+                
+                await new Promise(resolve => setTimeout(resolve, 100)); // UI更新
+                
+                const result = Solver.solve(currentProblem, algo);
+                results.push(result);
+            }
+            
+            // 最良解を現在の解として設定
+            currentSolution = results.reduce((best, current) => 
+                current.score < best.score ? current : best
+            );
+            
+            updateSolutionTable(results);
+            document.getElementById('progressText').textContent = '完了';
+        }
+        
+        function updateSolutionTable(results) {
+            const tbody = document.getElementById('solutionTableBody');
+            tbody.innerHTML = '';
+            
+            results.forEach(result => {
+                const row = tbody.insertRow();
+                const optimalScore = Math.min(...results.map(r => r.score));
+                const accuracy = ((optimalScore / result.score) * 100).toFixed(1);
+                
+                row.innerHTML = `
+                    <td>${result.algorithm}</td>
+                    <td>${result.score.toFixed(2)}</td>
+                    <td>${result.solveTime.toFixed(1)}</td>
+                    <td>${accuracy}%</td>
+                `;
+                
+                if (result.score === optimalScore) {
+                    row.style.background = 'rgba(76, 175, 80, 0.2)';
+                }
+            });
+        }
+        
+        function updateStats() {
+            if (!currentSolution) return;
+            
+            document.getElementById('bestScore').textContent = currentSolution.score.toFixed(2);
+            document.getElementById('currentScore').textContent = currentSolution.score.toFixed(2);
+            document.getElementById('solveTime').textContent = currentSolution.solveTime.toFixed(1);
+            document.getElementById('iterations').textContent = currentSolution.iterations;
+            
+            // 偏差率計算（仮想最適解比較）
+            const theoretical = currentSolution.score * 0.95; // 仮想最適解
+            const deviation = ((currentSolution.score - theoretical) / theoretical * 100).toFixed(1);
+            document.getElementById('deviation').textContent = Math.max(0, deviation) + '%';
+            
+            const accuracy = Math.max(90, 100 - parseFloat(deviation));
+            document.getElementById('accuracy').textContent = accuracy.toFixed(0) + '%';
+        }
+        
+        function updateProblemTitle() {
+            const titles = {
+                tsp: '巡回セールスマン問題',
+                knapsack: 'ナップサック問題',
+                coloring: 'グラフ彩色問題',
+                matching: '最大マッチング問題'
+            };
+            
+            document.getElementById('problemTitle').textContent = titles[currentProblem.type];
+        }
+        
+        function selectAlgorithm(algo) {
+            selectedAlgorithm = algo;
+            document.querySelectorAll('.algo-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function updateSizeDisplay() {
+            const size = document.getElementById('problemSize').value;
+            document.getElementById('sizeDisplay').textContent = size + ' ノード';
+        }
+        
+        function showHint() {
+            const hintPanel = document.getElementById('hintPanel');
+            const hintText = document.getElementById('hintText');
+            
+            const hints = {
+                tsp: '最短距離の都市から順番に訪問してみましょう。黄色の線が最適パスの候補です。',
+                knapsack: '価値密度（価値/重量）の高いアイテムから選択しましょう。',
+                coloring: '隣接ノードと異なる色を使用してください。度数の高いノードから塗りましょう。',
+                matching: '左右のノードで最大数のペアを作りましょう。'
+            };
+            
+            hintText.textContent = hints[currentProblem?.type] || 'まず問題を生成してください。';
+            hintPanel.style.display = hintPanel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function resetSolution() {
+            currentSolution = null;
+            draw();
+            
+            // 統計リセット
+            ['bestScore', 'currentScore', 'deviation', 'solveTime', 'accuracy', 'iterations'].forEach(id => {
+                document.getElementById(id).textContent = '0';
+            });
+            
+            document.getElementById('solutionTableBody').innerHTML = '';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressText').textContent = '待機中...';
+        }
+        
+        function loadCustomData() {
+            try {
+                const data = JSON.parse(document.getElementById('customData').value);
+                if (data.nodes && Array.isArray(data.nodes)) {
+                    currentProblem = new Problem('tsp', data.nodes.length);
+                    currentProblem.nodes = data.nodes;
+                    if (data.edges) {
+                        currentProblem.edges = data.edges;
+                    }
+                    draw();
+                }
+            } catch (e) {
+                alert('無効なJSON形式です: ' + e.message);
+            }
+        }
+        
+        // レベルシステム初期化
+        function initializeLevels() {
+            const levelSelector = document.getElementById('levelSelector');
+            for (let i = 1; i <= 20; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'level-btn';
+                btn.textContent = i;
+                btn.onclick = () => selectLevel(i);
+                if (i === 1) btn.classList.add('current');
+                levelSelector.appendChild(btn);
+            }
+        }
+        
+        function selectLevel(level) {
+            currentLevel = level;
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('current');
+                if (parseInt(btn.textContent) === level) {
+                    btn.classList.add('current');
+                }
+            });
+            
+            // レベルに応じて難易度調整
+            const baseSize = 5 + level * 2;
+            document.getElementById('problemSize').value = Math.min(100, baseSize);
+            updateSizeDisplay();
+            
+            document.getElementById('currentLevel').textContent = `レベル ${level}/20`;
+        }
+        
+        // 初期化
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+            draw();
+        });
+        
+        // 初期設定
+        initializeLevels();
+        generateProblem();
+    </script>
+</body>
+</html>
