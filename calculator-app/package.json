@@ -1,0 +1,24 @@
+{
+  "name": "calculator-app",
+  "version": "1.0.0",
+  "description": "多機能電卓アプリケーション - CLI、バッチ処理、HTTPサーバーモード対応",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "start:server": "node app.js --server",
+    "test": "node test/test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "calculator",
+    "cli",
+    "http-server",
+    "batch-processing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}

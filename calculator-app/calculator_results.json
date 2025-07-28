@@ -1,0 +1,12 @@
+[
+  {
+    "operation": "5 + 10",
+    "result": 15,
+    "timestamp": "2025-07-28T23:36:12.103Z"
+  },
+  {
+    "operation": "20 - 8",
+    "result": 12,
+    "timestamp": "2025-07-28T23:36:12.103Z"
+  }
+]
