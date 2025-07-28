@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物理シミュレーション統合エンジン</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: radial-gradient(circle at center, #0a0a0a, #1a1a2e, #16213e, #2e8b57);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 400px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+        
+        .main-canvas {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(45deg, #0f0f23, #1a1a2e);
+        }
+        
+        h1 {
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #32cd32, #00bfff, #ff69b4, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        
+        .control-section {
+            margin-bottom: 20px;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(50, 205, 50, 0.2);
+        }
+        
+        .control-section h3 {
+            color: #32cd32;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        label {
+            display: block;
+            margin: 8px 0 4px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #32cd32, #00bfff);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 12px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(50, 205, 50, 0.4);
+        }
+        
+        .simulation-types {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .sim-btn {
+            padding: 8px;
+            font-size: 0.8em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(50, 205, 50, 0.3);
+            color: #fff;
+            text-align: center;
+        }
+        
+        .sim-btn:hover {
+            background: rgba(50, 205, 50, 0.2);
+        }
+        
+        .sim-btn.active {
+            background: rgba(50, 205, 50, 0.4);
+            border-color: #32cd32;
+        }
+        
+        .parameter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .value-display {
+            color: #32cd32;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(50, 205, 50, 0.3);
+        }
+        
+        .stats div {
+            margin: 3px 0;
+        }
+        
+        .simulation-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(50, 205, 50, 0.2);
+            border: 1px solid rgba(50, 205, 50, 0.5);
+            color: #fff;
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .control-btn:hover {
+            background: rgba(50, 205, 50, 0.4);
+        }
+        
+        .force-vectors {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        
+        .force-btn {
+            padding: 5px;
+            font-size: 0.7em;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(50, 205, 50, 0.2);
+        }
+        
+        .force-btn.active {
+            background: rgba(50, 205, 50, 0.3);
+        }
+        
+        .object-properties {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+        }
+        
+        @keyframes particleMotion {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(90deg); }
+            50% { transform: scale(1) rotate(180deg); }
+            75% { transform: scale(0.9) rotate(270deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+        
+        .simulating {
+            animation: particleMotion 2s ease-in-out infinite;
+        }
+        
+        .preset-scenarios {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+        
+        .scenario-btn {
+            padding: 6px;
+            font-size: 0.7em;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(50, 205, 50, 0.2);
+            color: #ccc;
+        }
+        
+        .scenario-btn:hover {
+            background: rgba(50, 205, 50, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>⚛️ 物理シミュレーション統合エンジン</h1>
+            
+            <div class="control-section">
+                <h3>🎯 シミュレーション種類</h3>
+                <div class="simulation-types">
+                    <button class="sim-btn active" onclick="selectSimulation('particles')">粒子系</button>
+                    <button class="sim-btn" onclick="selectSimulation('fluid')">流体力学</button>
+                    <button class="sim-btn" onclick="selectSimulation('pendulum')">振り子</button>
+                    <button class="sim-btn" onclick="selectSimulation('springs')">バネ系</button>
+                    <button class="sim-btn" onclick="selectSimulation('waves')">波動</button>
+                    <button class="sim-btn" onclick="selectSimulation('orbital')">軌道力学</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>🔧 物理パラメータ</h3>
+                <div class="parameter-grid">
+                    <div>
+                        <label>重力: <span class="value-display" id="gravityDisplay">9.81</span></label>
+                        <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.81">
+                    </div>
+                    <div>
+                        <label>摩擦: <span class="value-display" id="frictionDisplay">0.01</span></label>
+                        <input type="range" id="friction" min="0" max="1" step="0.01" value="0.01">
+                    </div>
+                </div>
+                
+                <div class="parameter-grid">
+                    <div>
+                        <label>空気抵抗: <span class="value-display" id="airResistanceDisplay">0.001</span></label>
+                        <input type="range" id="airResistance" min="0" max="0.1" step="0.001" value="0.001">
+                    </div>
+                    <div>
+                        <label>反発係数: <span class="value-display" id="restitutionDisplay">0.8</span></label>
+                        <input type="range" id="restitution" min="0" max="1" step="0.01" value="0.8">
+                    </div>
+                </div>
+                
+                <label>時間倍率: <span class="value-display" id="timeScaleDisplay">1.0</span></label>
+                <input type="range" id="timeScale" min="0.1" max="5" step="0.1" value="1">
+            </div>
+            
+            <div class="control-section">
+                <h3>⚡ 外力設定</h3>
+                <div class="force-vectors">
+                    <button class="force-btn" onclick="toggleForce('gravity')">重力場</button>
+                    <button class="force-btn" onclick="toggleForce('magnetic')">磁場</button>
+                    <button class="force-btn" onclick="toggleForce('electric')">電場</button>
+                    <button class="force-btn" onclick="toggleForce('wind')">風力</button>
+                    <button class="force-btn" onclick="toggleForce('turbulence')">乱流</button>
+                    <button class="force-btn" onclick="toggleForce('central')">中心力</button>
+                </div>
+                
+                <div class="parameter-grid">
+                    <div>
+                        <label>力の強度:</label>
+                        <input type="range" id="forceStrength" min="0" max="100" value="10">
+                    </div>
+                    <div>
+                        <label>力の方向:</label>
+                        <input type="range" id="forceDirection" min="0" max="360" value="270">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>🎨 オブジェクト設定</h3>
+                <div class="object-properties">
+                    <div>
+                        <label>質量:</label>
+                        <input type="number" id="objectMass" min="0.1" max="100" value="1" step="0.1">
+                    </div>
+                    <div>
+                        <label>サイズ:</label>
+                        <input type="number" id="objectSize" min="1" max="50" value="5">
+                    </div>
+                    <div>
+                        <label>電荷:</label>
+                        <input type="number" id="objectCharge" min="-10" max="10" value="0" step="0.1">
+                    </div>
+                </div>
+                
+                <label>オブジェクト数: <span class="value-display" id="objectCountDisplay">50</span></label>
+                <input type="range" id="objectCount" min="1" max="500" value="50">
+                
+                <label>
+                    <input type="checkbox" id="showTrails" checked> 軌跡表示
+                </label>
+                <label>
+                    <input type="checkbox" id="showVectors"> ベクトル表示
+                </label>
+                <label>
+                    <input type="checkbox" id="showForceFields"> 力場可視化
+                </label>
+            </div>
+            
+            <div class="control-section">
+                <h3>⚙️ シミュレーション制御</h3>
+                <button onclick="startSimulation()" id="startBtn">▶️ 開始</button>
+                <button onclick="pauseSimulation()" id="pauseBtn">⏸️ 停止</button>
+                <button onclick="resetSimulation()" id="resetBtn">🔄 リセット</button>
+                <button onclick="stepSimulation()" id="stepBtn">👣 ステップ実行</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>📋 プリセットシナリオ</h3>
+                <div class="preset-scenarios">
+                    <button class="scenario-btn" onclick="loadScenario('solar')">太陽系</button>
+                    <button class="scenario-btn" onclick="loadScenario('collision')">衝突実験</button>
+                    <button class="scenario-btn" onclick="loadScenario('pendulum')">二重振り子</button>
+                    <button class="scenario-btn" onclick="loadScenario('fountain')">粒子噴水</button>
+                    <button class="scenario-btn" onclick="loadScenario('galaxy')">銀河形成</button>
+                    <button class="scenario-btn" onclick="loadScenario('nbody')">n体問題</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>📊 分析ツール</h3>
+                <button onclick="analyzeEnergy()" style="font-size: 0.8em;">エネルギー分析</button>
+                <button onclick="analyzeMomentum()" style="font-size: 0.8em;">運動量分析</button>
+                <button onclick="measureTemperature()" style="font-size: 0.8em;">温度測定</button>
+            </div>
+            
+            <div class="control-section">
+                <button onclick="exportSimulation()">💾 シミュレーション保存</button>
+                <button onclick="recordAnimation()">🎥 アニメーション録画</button>
+            </div>
+        </div>
+        
+        <div class="main-canvas">
+            <canvas id="canvas"></canvas>
+            
+            <div class="stats">
+                <div>シミュレーション: <span id="currentSim">粒子系</span></div>
+                <div>オブジェクト数: <span id="activeObjects">0</span></div>
+                <div>総エネルギー: <span id="totalEnergy">0</span>J</div>
+                <div>運動エネルギー: <span id="kineticEnergy">0</span>J</div>
+                <div>位置エネルギー: <span id="potentialEnergy">0</span>J</div>
+                <div>時間: <span id="simulationTime">0.00</span>s</div>
+                <div>FPS: <span id="fps">60</span></div>
+            </div>
+            
+            <div class="simulation-controls">
+                <button class="control-btn" onclick="addObject()" title="オブジェクト追加">+</button>
+                <button class="control-btn" onclick="removeObject()" title="オブジェクト削除">-</button>
+                <button class="control-btn" onclick="explode()" title="爆発">💥</button>
+                <button class="control-btn" onclick="implode()" title="収束">🌀</button>
+                <button class="control-btn" onclick="scramble()" title="撹拌">🌪️</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let objects = [];
+        let currentSimulationType = 'particles';
+        let isRunning = false;
+        let animationId = null;
+        let simulationTime = 0;
+        let frameCount = 0;
+        let lastFpsTime = 0;
+        let activeForces = new Set();
+        
+        // 物理オブジェクトクラス
+        class PhysicsObject {
+            constructor(x, y, mass = 1, charge = 0) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.ax = 0;
+                this.ay = 0;
+                this.mass = mass;
+                this.charge = charge;
+                this.radius = Math.sqrt(mass) * 3;
+                this.trail = [];
+                this.color = this.generateColor();
+                this.age = 0;
+                this.energy = 0;
+            }
+            
+            generateColor() {
+                const hue = this.charge > 0 ? 0 : this.charge < 0 ? 240 : 120;
+                const saturation = Math.min(100, Math.abs(this.charge) * 20 + 50);
+                const lightness = 50 + Math.log(this.mass) * 10;
+                return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            }
+            
+            update(dt) {
+                // 力の計算
+                this.calculateForces();
+                
+                // 運動方程式（ベルレ法）
+                const newX = this.x + this.vx * dt + 0.5 * this.ax * dt * dt;
+                const newY = this.y + this.vy * dt + 0.5 * this.ay * dt * dt;
+                
+                const newAx = this.ax;
+                const newAy = this.ay;
+                
+                this.vx += 0.5 * (this.ax + newAx) * dt;
+                this.vy += 0.5 * (this.ay + newAy) * dt;
+                
+                this.x = newX;
+                this.y = newY;
+                
+                // 境界条件
+                this.handleBoundaries();
+                
+                // 軌跡記録
+                if (document.getElementById('showTrails').checked) {
+                    this.trail.push({x: this.x, y: this.y, age: this.age});
+                    if (this.trail.length > 100) {
+                        this.trail.shift();
+                    }
+                }
+                
+                this.age++;
+                this.updateEnergy();
+            }
+            
+            calculateForces() {
+                this.ax = 0;
+                this.ay = 0;
+                
+                // 重力
+                if (activeForces.has('gravity')) {
+                    const gravity = parseFloat(document.getElementById('gravity').value);
+                    this.ay += gravity;
+                }
+                
+                // 空気抵抗
+                const airResistance = parseFloat(document.getElementById('airResistance').value);
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed > 0) {
+                    this.ax -= (this.vx / speed) * airResistance * speed * speed / this.mass;
+                    this.ay -= (this.vy / speed) * airResistance * speed * speed / this.mass;
+                }
+                
+                // オブジェクト間相互作用
+                this.calculateInteractions();
+                
+                // 外力
+                this.calculateExternalForces();
+            }
+            
+            calculateInteractions() {
+                for (const other of objects) {
+                    if (other === this) continue;
+                    
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < this.radius + other.radius) {
+                        // 衝突処理
+                        this.handleCollision(other);
+                    } else if (distance > 0) {
+                        // 重力相互作用
+                        const G = 0.1; // 重力定数
+                        const force = G * this.mass * other.mass / (distance * distance);
+                        this.ax += force * dx / distance / this.mass;
+                        this.ay += force * dy / distance / this.mass;
+                        
+                        // 電気力相互作用
+                        if (this.charge !== 0 && other.charge !== 0) {
+                            const k = 10; // クーロン定数
+                            const electricForce = k * this.charge * other.charge / (distance * distance);
+                            this.ax -= electricForce * dx / distance / this.mass;
+                            this.ay -= electricForce * dy / distance / this.mass;
+                        }
+                    }
+                }
+            }
+            
+            calculateExternalForces() {
+                const forceStrength = parseFloat(document.getElementById('forceStrength').value);
+                const forceDirection = parseFloat(document.getElementById('forceDirection').value) * Math.PI / 180;
+                
+                if (activeForces.has('wind')) {
+                    this.ax += forceStrength * Math.cos(forceDirection) / this.mass;
+                    this.ay += forceStrength * Math.sin(forceDirection) / this.mass;
+                }
+                
+                if (activeForces.has('central')) {
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const dx = centerX - this.x;
+                    const dy = centerY - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0) {
+                        this.ax += forceStrength * dx / distance / this.mass;
+                        this.ay += forceStrength * dy / distance / this.mass;
+                    }
+                }
+                
+                if (activeForces.has('turbulence')) {
+                    this.ax += (Math.random() - 0.5) * forceStrength / this.mass;
+                    this.ay += (Math.random() - 0.5) * forceStrength / this.mass;
+                }
+                
+                if (activeForces.has('magnetic')) {
+                    // ローレンツ力 F = q(v × B)
+                    const B = forceStrength * 0.1;
+                    this.ax += this.charge * this.vy * B / this.mass;
+                    this.ay -= this.charge * this.vx * B / this.mass;
+                }
+            }
+            
+            handleCollision(other) {
+                const dx = other.x - this.x;
+                const dy = other.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance === 0) return;
+                
+                // 重なり解決
+                const overlap = this.radius + other.radius - distance;
+                const nx = dx / distance;
+                const ny = dy / distance;
+                
+                this.x -= nx * overlap * 0.5;
+                this.y -= ny * overlap * 0.5;
+                other.x += nx * overlap * 0.5;
+                other.y += ny * overlap * 0.5;
+                
+                // 弾性衝突
+                const restitution = parseFloat(document.getElementById('restitution').value);
+                const relativeVelocityX = other.vx - this.vx;
+                const relativeVelocityY = other.vy - this.vy;
+                const velocityAlongNormal = relativeVelocityX * nx + relativeVelocityY * ny;
+                
+                if (velocityAlongNormal > 0) return; // 分離中
+                
+                const impulse = (1 + restitution) * velocityAlongNormal / (1/this.mass + 1/other.mass);
+                
+                this.vx += impulse * nx / this.mass;
+                this.vy += impulse * ny / this.mass;
+                other.vx -= impulse * nx / other.mass;
+                other.vy -= impulse * ny / other.mass;
+            }
+            
+            handleBoundaries() {
+                const friction = parseFloat(document.getElementById('friction').value);
+                
+                if (this.x - this.radius < 0) {
+                    this.x = this.radius;
+                    this.vx *= -parseFloat(document.getElementById('restitution').value);
+                    this.vy *= (1 - friction);
+                }
+                if (this.x + this.radius > canvas.width) {
+                    this.x = canvas.width - this.radius;
+                    this.vx *= -parseFloat(document.getElementById('restitution').value);
+                    this.vy *= (1 - friction);
+                }
+                if (this.y - this.radius < 0) {
+                    this.y = this.radius;
+                    this.vy *= -parseFloat(document.getElementById('restitution').value);
+                    this.vx *= (1 - friction);
+                }
+                if (this.y + this.radius > canvas.height) {
+                    this.y = canvas.height - this.radius;
+                    this.vy *= -parseFloat(document.getElementById('restitution').value);
+                    this.vx *= (1 - friction);
+                }
+            }
+            
+            updateEnergy() {
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                this.energy = 0.5 * this.mass * speed * speed;
+                
+                // 位置エネルギー（重力）
+                if (activeForces.has('gravity')) {
+                    const gravity = parseFloat(document.getElementById('gravity').value);
+                    this.energy += this.mass * gravity * (canvas.height - this.y);
+                }
+            }
+            
+            draw() {
+                // 軌跡描画
+                if (document.getElementById('showTrails').checked && this.trail.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                    
+                    for (let i = 1; i < this.trail.length; i++) {
+                        const alpha = i / this.trail.length;
+                        ctx.globalAlpha = alpha * 0.6;
+                        ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                    }
+                    
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+                
+                // オブジェクト本体
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // ベクトル表示
+                if (document.getElementById('showVectors').checked) {
+                    const scale = 50;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x + this.vx * scale, this.y + this.vy * scale);
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // 加速度ベクトル
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x + this.ax * scale * 10, this.y + this.ay * scale * 10);
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // キャンバス初期化
+        function initCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        
+        // シミュレーション選択
+        function selectSimulation(type) {
+            currentSimulationType = type;
+            document.querySelectorAll('.sim-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const names = {
+                particles: '粒子系',
+                fluid: '流体力学',
+                pendulum: '振り子',
+                springs: 'バネ系',
+                waves: '波動',
+                orbital: '軌道力学'
+            };
+            
+            document.getElementById('currentSim').textContent = names[type];
+            resetSimulation();
+        }
+        
+        // シミュレーション制御
+        function startSimulation() {
+            if (!isRunning) {
+                isRunning = true;
+                activeForces.add('gravity'); // デフォルトで重力を有効
+                animate();
+            }
+        }
+        
+        function pauseSimulation() {
+            isRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function resetSimulation() {
+            pauseSimulation();
+            objects = [];
+            simulationTime = 0;
+            initializeObjects();
+            draw();
+        }
+        
+        function stepSimulation() {
+            if (!isRunning) {
+                updateSimulation(1/60);
+                draw();
+            }
+        }
+        
+        // オブジェクト初期化
+        function initializeObjects() {
+            const count = parseInt(document.getElementById('objectCount').value);
+            const mass = parseFloat(document.getElementById('objectMass').value);
+            const charge = parseFloat(document.getElementById('objectCharge').value);
+            
+            objects = [];
+            
+            switch (currentSimulationType) {
+                case 'particles':
+                    initializeParticles(count, mass, charge);
+                    break;
+                case 'pendulum':
+                    initializePendulum();
+                    break;
+                case 'springs':
+                    initializeSprings(count);
+                    break;
+                case 'orbital':
+                    initializeOrbital();
+                    break;
+                default:
+                    initializeParticles(count, mass, charge);
+            }
+        }
+        
+        function initializeParticles(count, mass, charge) {
+            for (let i = 0; i < count; i++) {
+                const x = Math.random() * (canvas.width - 100) + 50;
+                const y = Math.random() * (canvas.height - 100) + 50;
+                const obj = new PhysicsObject(x, y, mass + Math.random() * mass, charge * (Math.random() - 0.5) * 2);
+                obj.vx = (Math.random() - 0.5) * 100;
+                obj.vy = (Math.random() - 0.5) * 100;
+                objects.push(obj);
+            }
+        }
+        
+        function initializePendulum() {
+            const centerX = canvas.width / 2;
+            const centerY = 100;
+            const length = 200;
+            
+            // 二重振り子
+            const pendulum1 = new PhysicsObject(centerX + length * 0.7, centerY + length * 0.7, 5);
+            const pendulum2 = new PhysicsObject(centerX + length * 1.2, centerY + length * 1.2, 3);
+            
+            pendulum1.vx = 50;
+            pendulum2.vx = -30;
+            
+            objects.push(pendulum1, pendulum2);
+        }
+        
+        function initializeSprings(count) {
+            const spacing = canvas.width / (count + 1);
+            for (let i = 0; i < count; i++) {
+                const x = spacing * (i + 1);
+                const y = canvas.height / 2;
+                const obj = new PhysicsObject(x, y, 2);
+                obj.vy = (Math.random() - 0.5) * 50;
+                objects.push(obj);
+            }
+        }
+        
+        function initializeOrbital() {
+            // 太陽
+            const sun = new PhysicsObject(canvas.width / 2, canvas.height / 2, 50);
+            sun.vx = 0;
+            sun.vy = 0;
+            objects.push(sun);
+            
+            // 惑星
+            for (let i = 1; i <= 5; i++) {
+                const distance = 80 + i * 40;
+                const angle = Math.random() * Math.PI * 2;
+                const x = sun.x + distance * Math.cos(angle);
+                const y = sun.y + distance * Math.sin(angle);
+                
+                const planet = new PhysicsObject(x, y, i);
+                const orbitalSpeed = Math.sqrt(100 * sun.mass / distance);
+                planet.vx = -orbitalSpeed * Math.sin(angle);
+                planet.vy = orbitalSpeed * Math.cos(angle);
+                
+                objects.push(planet);
+            }
+        }
+        
+        // メインアニメーションループ
+        function animate() {
+            if (!isRunning) return;
+            
+            const timeScale = parseFloat(document.getElementById('timeScale').value);
+            const dt = 1/60 * timeScale;
+            
+            updateSimulation(dt);
+            draw();
+            updateStats();
+            updateFPS();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function updateSimulation(dt) {
+            simulationTime += dt;
+            
+            for (const obj of objects) {
+                obj.update(dt);
+            }
+        }
+        
+        // 描画
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 背景グラデーション
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0,
+                canvas.width/2, canvas.height/2, canvas.width/2
+            );
+            gradient.addColorStop(0, 'rgba(15, 15, 35, 0.1)');
+            gradient.addColorStop(1, 'rgba(46, 139, 87, 0.3)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 力場可視化
+            if (document.getElementById('showForceFields').checked) {
+                drawForceFields();
+            }
+            
+            // オブジェクト描画
+            for (const obj of objects) {
+                obj.draw();
+            }
+        }
+        
+        function drawForceFields() {
+            if (activeForces.has('gravity')) {
+                drawGravityField();
+            }
+            if (activeForces.has('magnetic')) {
+                drawMagneticField();
+            }
+        }
+        
+        function drawGravityField() {
+            const step = 40;
+            ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.lineWidth = 1;
+            
+            for (let x = step; x < canvas.width; x += step) {
+                for (let y = step; y < canvas.height; y += step) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, y + 20);
+                    ctx.stroke();
+                    
+                    // 矢印
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + 20);
+                    ctx.lineTo(x - 3, y + 17);
+                    ctx.moveTo(x, y + 20);
+                    ctx.lineTo(x + 3, y + 17);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        function drawMagneticField() {
+            const step = 60;
+            ctx.strokeStyle = 'rgba(255, 0, 255, 0.3)';
+            ctx.lineWidth = 1;
+            
+            for (let x = step; x < canvas.width; x += step) {
+                for (let y = step; y < canvas.height; y += step) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x - 3, y - 3);
+                    ctx.lineTo(x + 3, y + 3);
+                    ctx.moveTo(x + 3, y - 3);
+                    ctx.lineTo(x - 3, y + 3);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // 外力制御
+        function toggleForce(forceType) {
+            const btn = event.target;
+            if (activeForces.has(forceType)) {
+                activeForces.delete(forceType);
+                btn.classList.remove('active');
+            } else {
+                activeForces.add(forceType);
+                btn.classList.add('active');
+            }
+        }
+        
+        // オブジェクト操作
+        function addObject() {
+            const mass = parseFloat(document.getElementById('objectMass').value);
+            const charge = parseFloat(document.getElementById('objectCharge').value);
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            
+            const obj = new PhysicsObject(x, y, mass, charge);
+            obj.vx = (Math.random() - 0.5) * 100;
+            obj.vy = (Math.random() - 0.5) * 100;
+            objects.push(obj);
+        }
+        
+        function removeObject() {
+            if (objects.length > 0) {
+                objects.pop();
+            }
+        }
+        
+        function explode() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const explosionForce = 1000;
+            
+            for (const obj of objects) {
+                const dx = obj.x - centerX;
+                const dy = obj.y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    obj.vx += explosionForce * dx / distance / obj.mass;
+                    obj.vy += explosionForce * dy / distance / obj.mass;
+                }
+            }
+        }
+        
+        function implode() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const implosionForce = 500;
+            
+            for (const obj of objects) {
+                const dx = centerX - obj.x;
+                const dy = centerY - obj.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    obj.vx += implosionForce * dx / distance / obj.mass;
+                    obj.vy += implosionForce * dy / distance / obj.mass;
+                }
+            }
+        }
+        
+        function scramble() {
+            for (const obj of objects) {
+                obj.vx += (Math.random() - 0.5) * 200;
+                obj.vy += (Math.random() - 0.5) * 200;
+            }
+        }
+        
+        // プリセットシナリオ
+        function loadScenario(scenario) {
+            resetSimulation();
+            
+            switch (scenario) {
+                case 'solar':
+                    selectSimulation('orbital');
+                    break;
+                case 'collision':
+                    initializeCollisionDemo();
+                    break;
+                case 'pendulum':
+                    selectSimulation('pendulum');
+                    break;
+                case 'fountain':
+                    initializeFountain();
+                    break;
+                case 'galaxy':
+                    initializeGalaxy();
+                    break;
+                case 'nbody':
+                    initializeNBody();
+                    break;
+            }
+            
+            draw();
+        }
+        
+        function initializeCollisionDemo() {
+            const obj1 = new PhysicsObject(canvas.width * 0.2, canvas.height / 2, 10);
+            const obj2 = new PhysicsObject(canvas.width * 0.8, canvas.height / 2, 5);
+            
+            obj1.vx = 150;
+            obj2.vx = -100;
+            
+            objects = [obj1, obj2];
+        }
+        
+        function initializeFountain() {
+            const centerX = canvas.width / 2;
+            const groundY = canvas.height - 50;
+            
+            for (let i = 0; i < 100; i++) {
+                const obj = new PhysicsObject(centerX + (Math.random() - 0.5) * 20, groundY, 0.5);
+                obj.vx = (Math.random() - 0.5) * 100;
+                obj.vy = -Math.random() * 300 - 100;
+                objects.push(obj);
+            }
+        }
+        
+        function initializeGalaxy() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // 中心の超大質量オブジェクト
+            const center = new PhysicsObject(centerX, centerY, 100);
+            objects.push(center);
+            
+            // 渦巻き構造
+            for (let i = 0; i < 200; i++) {
+                const distance = 50 + Math.random() * 250;
+                const angle = Math.random() * Math.PI * 2;
+                const x = centerX + distance * Math.cos(angle);
+                const y = centerY + distance * Math.sin(angle);
+                
+                const obj = new PhysicsObject(x, y, 0.5 + Math.random() * 2);
+                const orbitalSpeed = Math.sqrt(20 * center.mass / distance);
+                obj.vx = -orbitalSpeed * Math.sin(angle) * (0.8 + Math.random() * 0.4);
+                obj.vy = orbitalSpeed * Math.cos(angle) * (0.8 + Math.random() * 0.4);
+                
+                objects.push(obj);
+            }
+        }
+        
+        function initializeNBody() {
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const mass = 5 + Math.random() * 15;
+                
+                const obj = new PhysicsObject(x, y, mass);
+                obj.vx = (Math.random() - 0.5) * 50;
+                obj.vy = (Math.random() - 0.5) * 50;
+                objects.push(obj);
+            }
+        }
+        
+        // 分析機能
+        function analyzeEnergy() {
+            let totalKinetic = 0;
+            let totalPotential = 0;
+            
+            for (const obj of objects) {
+                const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+                totalKinetic += 0.5 * obj.mass * speed * speed;
+                
+                if (activeForces.has('gravity')) {
+                    const gravity = parseFloat(document.getElementById('gravity').value);
+                    totalPotential += obj.mass * gravity * (canvas.height - obj.y);
+                }
+            }
+            
+            console.log(`運動エネルギー: ${totalKinetic.toFixed(2)}J`);
+            console.log(`位置エネルギー: ${totalPotential.toFixed(2)}J`);
+            console.log(`総エネルギー: ${(totalKinetic + totalPotential).toFixed(2)}J`);
+        }
+        
+        function analyzeMomentum() {
+            let totalMomentumX = 0;
+            let totalMomentumY = 0;
+            
+            for (const obj of objects) {
+                totalMomentumX += obj.mass * obj.vx;
+                totalMomentumY += obj.mass * obj.vy;
+            }
+            
+            const totalMomentum = Math.sqrt(totalMomentumX * totalMomentumX + totalMomentumY * totalMomentumY);
+            console.log(`総運動量: ${totalMomentum.toFixed(2)} kg⋅m/s`);
+        }
+        
+        function measureTemperature() {
+            let totalKineticEnergy = 0;
+            
+            for (const obj of objects) {
+                const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+                totalKineticEnergy += 0.5 * obj.mass * speed * speed;
+            }
+            
+            const temperature = (2 * totalKineticEnergy) / (3 * objects.length);
+            console.log(`系の温度: ${temperature.toFixed(2)}K (相対値)`);
+        }
+        
+        // 統計更新
+        function updateStats() {
+            document.getElementById('activeObjects').textContent = objects.length;
+            document.getElementById('simulationTime').textContent = simulationTime.toFixed(2);
+            
+            let totalKinetic = 0;
+            let totalPotential = 0;
+            
+            for (const obj of objects) {
+                const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+                totalKinetic += 0.5 * obj.mass * speed * speed;
+                
+                if (activeForces.has('gravity')) {
+                    const gravity = parseFloat(document.getElementById('gravity').value);
+                    totalPotential += obj.mass * gravity * (canvas.height - obj.y);
+                }
+            }
+            
+            document.getElementById('kineticEnergy').textContent = totalKinetic.toFixed(1);
+            document.getElementById('potentialEnergy').textContent = totalPotential.toFixed(1);
+            document.getElementById('totalEnergy').textContent = (totalKinetic + totalPotential).toFixed(1);
+        }
+        
+        function updateFPS() {
+            const now = performance.now();
+            frameCount++;
+            
+            if (now - lastFpsTime > 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+            }
+        }
+        
+        // 表示値更新
+        function updateDisplayValues() {
+            document.getElementById('gravityDisplay').textContent = document.getElementById('gravity').value;
+            document.getElementById('frictionDisplay').textContent = document.getElementById('friction').value;
+            document.getElementById('airResistanceDisplay').textContent = document.getElementById('airResistance').value;
+            document.getElementById('restitutionDisplay').textContent = document.getElementById('restitution').value;
+            document.getElementById('timeScaleDisplay').textContent = document.getElementById('timeScale').value;
+            document.getElementById('objectCountDisplay').textContent = document.getElementById('objectCount').value;
+        }
+        
+        // エクスポート
+        function exportSimulation() {
+            const data = {
+                type: currentSimulationType,
+                objects: objects.map(obj => ({
+                    x: obj.x,
+                    y: obj.y,
+                    vx: obj.vx,
+                    vy: obj.vy,
+                    mass: obj.mass,
+                    charge: obj.charge
+                })),
+                forces: Array.from(activeForces),
+                parameters: {
+                    gravity: parseFloat(document.getElementById('gravity').value),
+                    friction: parseFloat(document.getElementById('friction').value),
+                    airResistance: parseFloat(document.getElementById('airResistance').value),
+                    restitution: parseFloat(document.getElementById('restitution').value),
+                    timeScale: parseFloat(document.getElementById('timeScale').value)
+                }
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `physics_simulation_${Date.now()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function recordAnimation() {
+            console.log('アニメーション録画機能は準備中です');
+        }
+        
+        // イベントリスナー
+        ['gravity', 'friction', 'airResistance', 'restitution', 'timeScale', 'objectCount'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateDisplayValues);
+        });
+        
+        document.getElementById('objectCount').addEventListener('change', () => {
+            if (!isRunning) {
+                initializeObjects();
+                draw();
+            }
+        });
+        
+        // マウスインタラクション
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const mass = parseFloat(document.getElementById('objectMass').value);
+            const charge = parseFloat(document.getElementById('objectCharge').value);
+            const obj = new PhysicsObject(x, y, mass, charge);
+            objects.push(obj);
+        });
+        
+        // 初期化
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+        updateDisplayValues();
+        initializeObjects();
+        draw();
+    </script>
+</body>
+</html>
