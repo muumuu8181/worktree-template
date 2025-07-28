@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>グラフアルゴリズムビジュアライザー</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: radial-gradient(ellipse at center, #0a0a0a, #1a1a2e, #16213e);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+        
+        .main-canvas {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(45deg, #0f0f23, #1a1a2e);
+        }
+        
+        h1 {
+            font-size: 1.4em;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #00ff88, #00ffff, #8888ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        
+        .control-section {
+            margin-bottom: 20px;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        
+        .control-section h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        label {
+            display: block;
+            margin: 8px 0 4px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #00ff88, #00ffaa);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 12px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .algorithm-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .algo-btn {
+            padding: 8px;
+            font-size: 0.8em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #fff;
+        }
+        
+        .algo-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+        
+        .algo-btn.active {
+            background: rgba(0, 255, 136, 0.4);
+            border-color: #00ff88;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        .stats div {
+            margin: 3px 0;
+        }
+        
+        .node-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .visualization-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .viz-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            color: #fff;
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .viz-btn:hover {
+            background: rgba(0, 255, 136, 0.4);
+        }
+        
+        @keyframes nodeAnimation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .active-node {
+            animation: nodeAnimation 0.5s ease-in-out;
+        }
+        
+        .path-highlight {
+            stroke-width: 4;
+            stroke: #ffff00;
+            stroke-dasharray: 5,5;
+            animation: pathFlow 1s linear infinite;
+        }
+        
+        @keyframes pathFlow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 10; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🔗 グラフアルゴリズムビジュアライザー</h1>
+            
+            <div class="control-section">
+                <h3>🧮 アルゴリズム選択</h3>
+                <div class="algorithm-buttons">
+                    <button class="algo-btn active" onclick="selectAlgorithm('dijkstra')">Dijkstra</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('bfs')">幅優先探索</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('dfs')">深度優先探索</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('astar')">A*アルゴリズム</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('kruskal')">Kruskal</button>
+                    <button class="algo-btn" onclick="selectAlgorithm('prim')">Prim</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>🎯 グラフ設定</h3>
+                <label>グラフタイプ:</label>
+                <select id="graphType">
+                    <option value="random">ランダムグラフ</option>
+                    <option value="grid">格子グラフ</option>
+                    <option value="tree">木構造</option>
+                    <option value="complete">完全グラフ</option>
+                    <option value="planar">平面グラフ</option>
+                </select>
+                
+                <div class="node-controls">
+                    <div>
+                        <label>ノード数:</label>
+                        <input type="number" id="nodeCount" min="5" max="50" value="15">
+                    </div>
+                    <div>
+                        <label>エッジ密度:</label>
+                        <input type="range" id="edgeDensity" min="0.1" max="1.0" step="0.1" value="0.3">
+                    </div>
+                </div>
+                
+                <button onclick="generateGraph()">🔄 グラフ生成</button>
+                <button onclick="clearPath()">🧹 パスクリア</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>⚡ 実行制御</h3>
+                <label>アニメーション速度:</label>
+                <input type="range" id="animationSpeed" min="100" max="2000" step="100" value="500">
+                
+                <button onclick="runAlgorithm()" id="runBtn">▶️ アルゴリズム実行</button>
+                <button onclick="stepByStep()" id="stepBtn">👣 ステップ実行</button>
+                <button onclick="pauseAnimation()" id="pauseBtn">⏸️ 一時停止</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>📊 表示設定</h3>
+                <label>
+                    <input type="checkbox" id="showWeights" checked> エッジ重み表示
+                </label>
+                <label>
+                    <input type="checkbox" id="showLabels" checked> ノードラベル
+                </label>
+                <label>
+                    <input type="checkbox" id="showDistance" checked> 距離表示
+                </label>
+                <label>
+                    <input type="checkbox" id="animateNodes" checked> ノードアニメーション
+                </label>
+            </div>
+            
+            <div class="control-section">
+                <h3>📋 プリセットグラフ</h3>
+                <button onclick="loadPreset('social')" style="font-size: 0.8em;">ソーシャルネットワーク</button>
+                <button onclick="loadPreset('transport')" style="font-size: 0.8em;">交通ネットワーク</button>
+                <button onclick="loadPreset('maze')" style="font-size: 0.8em;">迷路グラフ</button>
+            </div>
+        </div>
+        
+        <div class="main-canvas">
+            <canvas id="canvas"></canvas>
+            
+            <div class="stats">
+                <div>アルゴリズム: <span id="currentAlgo">Dijkstra</span></div>
+                <div>ノード数: <span id="nodeCountDisplay">0</span></div>
+                <div>エッジ数: <span id="edgeCountDisplay">0</span></div>
+                <div>実行時間: <span id="executionTime">0</span>ms</div>
+                <div>訪問ノード: <span id="visitedNodes">0</span></div>
+                <div>最短距離: <span id="shortestDistance">∞</span></div>
+            </div>
+            
+            <div class="visualization-controls">
+                <button class="viz-btn" onclick="zoomIn()">+</button>
+                <button class="viz-btn" onclick="zoomOut()">-</button>
+                <button class="viz-btn" onclick="resetView()">⌂</button>
+                <button class="viz-btn" onclick="exportGraph()">💾</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let nodes = [];
+        let edges = [];
+        let selectedAlgorithm = 'dijkstra';
+        let startNode = null;
+        let endNode = null;
+        let isRunning = false;
+        let animationId = null;
+        let currentPath = [];
+        let visitedOrder = [];
+        let camera = { x: 0, y: 0, zoom: 1 };
+        
+        // キャンバス初期化
+        function initCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        
+        // ノードクラス
+        class Node {
+            constructor(x, y, id) {
+                this.x = x;
+                this.y = y;
+                this.id = id;
+                this.distance = Infinity;
+                this.visited = false;
+                this.previous = null;
+                this.isStart = false;
+                this.isEnd = false;
+                this.radius = 20;
+                this.color = '#4a90e2';
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // ノード本体
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                
+                if (this.isStart) {
+                    ctx.fillStyle = '#00ff88';
+                } else if (this.isEnd) {
+                    ctx.fillStyle = '#ff4444';
+                } else if (this.visited) {
+                    ctx.fillStyle = '#ffaa00';
+                } else {
+                    ctx.fillStyle = this.color;
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // ラベル
+                if (document.getElementById('showLabels').checked) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.id, 0, 4);
+                }
+                
+                // 距離表示
+                if (document.getElementById('showDistance').checked && this.distance !== Infinity) {
+                    ctx.fillStyle = '#ffff00';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(this.distance.toFixed(1), 0, -25);
+                }
+                
+                ctx.restore();
+            }
+            
+            contains(x, y) {
+                const dx = x - this.x;
+                const dy = y - this.y;
+                return dx * dx + dy * dy <= this.radius * this.radius;
+            }
+        }
+        
+        // エッジクラス
+        class Edge {
+            constructor(from, to, weight = 1) {
+                this.from = from;
+                this.to = to;
+                this.weight = weight;
+                this.highlighted = false;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.from.x, this.from.y);
+                ctx.lineTo(this.to.x, this.to.y);
+                
+                if (this.highlighted) {
+                    ctx.strokeStyle = '#ffff00';
+                    ctx.lineWidth = 4;
+                } else {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.lineWidth = 2;
+                }
+                
+                ctx.stroke();
+                
+                // 重み表示
+                if (document.getElementById('showWeights').checked) {
+                    const midX = (this.from.x + this.to.x) / 2;
+                    const midY = (this.from.y + this.to.y) / 2;
+                    
+                    ctx.fillStyle = '#00ffff';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.weight.toFixed(1), midX, midY);
+                }
+            }
+        }
+        
+        // グラフ生成
+        function generateGraph() {
+            const nodeCount = parseInt(document.getElementById('nodeCount').value);
+            const edgeDensity = parseFloat(document.getElementById('edgeDensity').value);
+            const graphType = document.getElementById('graphType').value;
+            
+            nodes = [];
+            edges = [];
+            
+            // ノード生成
+            for (let i = 0; i < nodeCount; i++) {
+                let x, y;
+                
+                if (graphType === 'grid') {
+                    const cols = Math.ceil(Math.sqrt(nodeCount));
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+                    x = 100 + col * 80;
+                    y = 100 + row * 80;
+                } else {
+                    x = 50 + Math.random() * (canvas.width - 100);
+                    y = 50 + Math.random() * (canvas.height - 100);
+                }
+                
+                nodes.push(new Node(x, y, i));
+            }
+            
+            // エッジ生成
+            generateEdges(graphType, edgeDensity);
+            
+            // 統計更新
+            updateStats();
+            draw();
+        }
+        
+        function generateEdges(graphType, density) {
+            switch (graphType) {
+                case 'complete':
+                    for (let i = 0; i < nodes.length; i++) {
+                        for (let j = i + 1; j < nodes.length; j++) {
+                            const weight = distance(nodes[i], nodes[j]) / 50;
+                            edges.push(new Edge(nodes[i], nodes[j], weight));
+                        }
+                    }
+                    break;
+                    
+                case 'tree':
+                    for (let i = 1; i < nodes.length; i++) {
+                        const parent = Math.floor(Math.random() * i);
+                        const weight = distance(nodes[i], nodes[parent]) / 50;
+                        edges.push(new Edge(nodes[i], nodes[parent], weight));
+                    }
+                    break;
+                    
+                case 'grid':
+                    const cols = Math.ceil(Math.sqrt(nodes.length));
+                    for (let i = 0; i < nodes.length; i++) {
+                        const row = Math.floor(i / cols);
+                        const col = i % cols;
+                        
+                        // 右のノード
+                        if (col < cols - 1 && i + 1 < nodes.length) {
+                            edges.push(new Edge(nodes[i], nodes[i + 1], 1));
+                        }
+                        // 下のノード
+                        if (row < Math.floor((nodes.length - 1) / cols) && i + cols < nodes.length) {
+                            edges.push(new Edge(nodes[i], nodes[i + cols], 1));
+                        }
+                    }
+                    break;
+                    
+                default: // random
+                    const maxEdges = nodes.length * (nodes.length - 1) / 2;
+                    const targetEdges = Math.floor(maxEdges * density);
+                    
+                    while (edges.length < targetEdges) {
+                        const from = nodes[Math.floor(Math.random() * nodes.length)];
+                        const to = nodes[Math.floor(Math.random() * nodes.length)];
+                        
+                        if (from !== to && !edges.some(e => 
+                            (e.from === from && e.to === to) || (e.from === to && e.to === from))) {
+                            const weight = distance(from, to) / 50;
+                            edges.push(new Edge(from, to, weight));
+                        }
+                    }
+            }
+        }
+        
+        // Dijkstraアルゴリズム
+        async function dijkstra(start, end) {
+            const unvisited = [...nodes];
+            start.distance = 0;
+            const visitOrder = [];
+            
+            while (unvisited.length > 0) {
+                // 最小距離ノード選択
+                unvisited.sort((a, b) => a.distance - b.distance);
+                const current = unvisited.shift();
+                
+                if (current.distance === Infinity) break;
+                
+                current.visited = true;
+                visitOrder.push(current);
+                
+                if (document.getElementById('animateNodes').checked) {
+                    await animateNodeVisit(current);
+                }
+                
+                if (current === end) break;
+                
+                // 隣接ノード更新
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (!neighbor.visited) {
+                        const edge = edges.find(e => 
+                            (e.from === current && e.to === neighbor) ||
+                            (e.from === neighbor && e.to === current)
+                        );
+                        const newDistance = current.distance + edge.weight;
+                        
+                        if (newDistance < neighbor.distance) {
+                            neighbor.distance = newDistance;
+                            neighbor.previous = current;
+                        }
+                    }
+                }
+                
+                draw();
+                await delay(parseInt(document.getElementById('animationSpeed').value));
+            }
+            
+            return buildPath(start, end);
+        }
+        
+        // A*アルゴリズム
+        async function aStar(start, end) {
+            const openSet = [start];
+            const closedSet = [];
+            start.distance = 0;
+            start.fScore = heuristic(start, end);
+            
+            while (openSet.length > 0) {
+                openSet.sort((a, b) => (a.fScore || Infinity) - (b.fScore || Infinity));
+                const current = openSet.shift();
+                
+                if (current === end) {
+                    return buildPath(start, end);
+                }
+                
+                closedSet.push(current);
+                current.visited = true;
+                
+                if (document.getElementById('animateNodes').checked) {
+                    await animateNodeVisit(current);
+                }
+                
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (closedSet.includes(neighbor)) continue;
+                    
+                    const edge = edges.find(e => 
+                        (e.from === current && e.to === neighbor) ||
+                        (e.from === neighbor && e.to === current)
+                    );
+                    const tentativeGScore = current.distance + edge.weight;
+                    
+                    if (!openSet.includes(neighbor)) {
+                        openSet.push(neighbor);
+                    } else if (tentativeGScore >= neighbor.distance) {
+                        continue;
+                    }
+                    
+                    neighbor.previous = current;
+                    neighbor.distance = tentativeGScore;
+                    neighbor.fScore = neighbor.distance + heuristic(neighbor, end);
+                }
+                
+                draw();
+                await delay(parseInt(document.getElementById('animationSpeed').value));
+            }
+            
+            return [];
+        }
+        
+        // 幅優先探索
+        async function bfs(start, end) {
+            const queue = [start];
+            start.visited = true;
+            start.distance = 0;
+            
+            while (queue.length > 0) {
+                const current = queue.shift();
+                
+                if (document.getElementById('animateNodes').checked) {
+                    await animateNodeVisit(current);
+                }
+                
+                if (current === end) break;
+                
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (!neighbor.visited) {
+                        neighbor.visited = true;
+                        neighbor.distance = current.distance + 1;
+                        neighbor.previous = current;
+                        queue.push(neighbor);
+                    }
+                }
+                
+                draw();
+                await delay(parseInt(document.getElementById('animationSpeed').value));
+            }
+            
+            return buildPath(start, end);
+        }
+        
+        // 深度優先探索
+        async function dfs(start, end) {
+            const stack = [start];
+            start.visited = true;
+            
+            while (stack.length > 0) {
+                const current = stack.pop();
+                
+                if (document.getElementById('animateNodes').checked) {
+                    await animateNodeVisit(current);
+                }
+                
+                if (current === end) break;
+                
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (!neighbor.visited) {
+                        neighbor.visited = true;
+                        neighbor.previous = current;
+                        stack.push(neighbor);
+                    }
+                }
+                
+                draw();
+                await delay(parseInt(document.getElementById('animationSpeed').value));
+            }
+            
+            return buildPath(start, end);
+        }
+        
+        // Kruskalアルゴリズム（最小全域木）
+        async function kruskal() {
+            const sortedEdges = [...edges].sort((a, b) => a.weight - b.weight);
+            const unionFind = new UnionFind(nodes.length);
+            const mstEdges = [];
+            
+            for (const edge of sortedEdges) {
+                const fromId = nodes.indexOf(edge.from);
+                const toId = nodes.indexOf(edge.to);
+                
+                if (unionFind.find(fromId) !== unionFind.find(toId)) {
+                    unionFind.union(fromId, toId);
+                    mstEdges.push(edge);
+                    edge.highlighted = true;
+                    
+                    draw();
+                    await delay(parseInt(document.getElementById('animationSpeed').value));
+                }
+            }
+            
+            return mstEdges;
+        }
+        
+        // Union-Find構造
+        class UnionFind {
+            constructor(n) {
+                this.parent = Array.from({length: n}, (_, i) => i);
+                this.rank = new Array(n).fill(0);
+            }
+            
+            find(x) {
+                if (this.parent[x] !== x) {
+                    this.parent[x] = this.find(this.parent[x]);
+                }
+                return this.parent[x];
+            }
+            
+            union(x, y) {
+                const rootX = this.find(x);
+                const rootY = this.find(y);
+                
+                if (rootX !== rootY) {
+                    if (this.rank[rootX] < this.rank[rootY]) {
+                        this.parent[rootX] = rootY;
+                    } else if (this.rank[rootX] > this.rank[rootY]) {
+                        this.parent[rootY] = rootX;
+                    } else {
+                        this.parent[rootY] = rootX;
+                        this.rank[rootX]++;
+                    }
+                }
+            }
+        }
+        
+        // ヘルパー関数
+        function distance(a, b) {
+            return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+        }
+        
+        function heuristic(a, b) {
+            return distance(a, b) / 50; // スケール調整
+        }
+        
+        function getNeighbors(node) {
+            return edges
+                .filter(e => e.from === node || e.to === node)
+                .map(e => e.from === node ? e.to : e.from);
+        }
+        
+        function buildPath(start, end) {
+            const path = [];
+            let current = end;
+            
+            while (current && current.previous) {
+                const edge = edges.find(e => 
+                    (e.from === current.previous && e.to === current) ||
+                    (e.from === current && e.to === current.previous)
+                );
+                if (edge) {
+                    edge.highlighted = true;
+                    path.unshift(edge);
+                }
+                current = current.previous;
+            }
+            
+            return path;
+        }
+        
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        async function animateNodeVisit(node) {
+            if (document.getElementById('animateNodes').checked) {
+                node.radius = 25;
+                draw();
+                await delay(100);
+                node.radius = 20;
+            }
+        }
+        
+        // メイン描画関数
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 背景グラデーション
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0,
+                canvas.width/2, canvas.height/2, canvas.width/2
+            );
+            gradient.addColorStop(0, 'rgba(15, 15, 35, 0.1)');
+            gradient.addColorStop(1, 'rgba(26, 26, 46, 0.3)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // エッジ描画
+            edges.forEach(edge => edge.draw());
+            
+            // ノード描画
+            nodes.forEach(node => node.draw());
+        }
+        
+        // アルゴリズム選択
+        function selectAlgorithm(algo) {
+            selectedAlgorithm = algo;
+            document.querySelectorAll('.algo-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('currentAlgo').textContent = algo;
+        }
+        
+        // アルゴリズム実行
+        async function runAlgorithm() {
+            if (isRunning || !startNode || !endNode) return;
+            
+            clearPath();
+            isRunning = true;
+            document.getElementById('runBtn').disabled = true;
+            
+            const startTime = performance.now();
+            let path = [];
+            
+            switch (selectedAlgorithm) {
+                case 'dijkstra':
+                    path = await dijkstra(startNode, endNode);
+                    break;
+                case 'astar':
+                    path = await aStar(startNode, endNode);
+                    break;
+                case 'bfs':
+                    path = await bfs(startNode, endNode);
+                    break;
+                case 'dfs':
+                    path = await dfs(startNode, endNode);
+                    break;
+                case 'kruskal':
+                    await kruskal();
+                    break;
+                case 'prim':
+                    await prim();
+                    break;
+            }
+            
+            const endTime = performance.now();
+            
+            // 統計更新
+            document.getElementById('executionTime').textContent = Math.round(endTime - startTime);
+            document.getElementById('visitedNodes').textContent = nodes.filter(n => n.visited).length;
+            document.getElementById('shortestDistance').textContent = 
+                endNode && endNode.distance !== Infinity ? endNode.distance.toFixed(2) : '∞';
+            
+            isRunning = false;
+            document.getElementById('runBtn').disabled = false;
+        }
+        
+        // パスクリア
+        function clearPath() {
+            nodes.forEach(node => {
+                node.visited = false;
+                node.distance = Infinity;
+                node.previous = null;
+            });
+            
+            edges.forEach(edge => {
+                edge.highlighted = false;
+            });
+            
+            draw();
+        }
+        
+        // 統計更新
+        function updateStats() {
+            document.getElementById('nodeCountDisplay').textContent = nodes.length;
+            document.getElementById('edgeCountDisplay').textContent = edges.length;
+        }
+        
+        // イベントリスナー
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const clickedNode = nodes.find(node => node.contains(x, y));
+            if (clickedNode) {
+                if (!startNode) {
+                    startNode = clickedNode;
+                    clickedNode.isStart = true;
+                } else if (!endNode && clickedNode !== startNode) {
+                    endNode = clickedNode;
+                    clickedNode.isEnd = true;
+                } else {
+                    // リセット
+                    if (startNode) startNode.isStart = false;
+                    if (endNode) endNode.isEnd = false;
+                    startNode = clickedNode;
+                    endNode = null;
+                    clickedNode.isStart = true;
+                }
+                draw();
+            }
+        });
+        
+        // その他の関数
+        function zoomIn() { camera.zoom *= 1.2; draw(); }
+        function zoomOut() { camera.zoom /= 1.2; draw(); }
+        function resetView() { camera = { x: 0, y: 0, zoom: 1 }; draw(); }
+        
+        function loadPreset(type) {
+            switch (type) {
+                case 'social':
+                    document.getElementById('graphType').value = 'random';
+                    document.getElementById('nodeCount').value = '20';
+                    document.getElementById('edgeDensity').value = '0.2';
+                    break;
+                case 'transport':
+                    document.getElementById('graphType').value = 'planar';
+                    document.getElementById('nodeCount').value = '15';
+                    document.getElementById('edgeDensity').value = '0.4';
+                    break;
+                case 'maze':
+                    document.getElementById('graphType').value = 'grid';
+                    document.getElementById('nodeCount').value = '25';
+                    break;
+            }
+            generateGraph();
+        }
+        
+        function exportGraph() {
+            const dataStr = JSON.stringify({
+                nodes: nodes.map(n => ({x: n.x, y: n.y, id: n.id})),
+                edges: edges.map(e => ({from: e.from.id, to: e.to.id, weight: e.weight}))
+            });
+            
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `graph_${Date.now()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 初期化
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+        generateGraph();
+    </script>
+</body>
+</html>
