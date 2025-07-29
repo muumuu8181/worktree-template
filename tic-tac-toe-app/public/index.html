@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe Game - PVP/PVA対応</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Tic-Tac-Toe Game</h1>
+            <p>Node.js Express Tic-Tac-Toe with PVP/PVA Support</p>
+        </header>
+        
+        <main class="game-container">
+            <!-- 左側: ゲームボード (60%) -->
+            <div class="game-board-section">
+                <div class="game-board" id="gameBoard">
+                    <div class="cell" data-index="0"></div>
+                    <div class="cell" data-index="1"></div>
+                    <div class="cell" data-index="2"></div>
+                    <div class="cell" data-index="3"></div>
+                    <div class="cell" data-index="4"></div>
+                    <div class="cell" data-index="5"></div>
+                    <div class="cell" data-index="6"></div>
+                    <div class="cell" data-index="7"></div>
+                    <div class="cell" data-index="8"></div>
+                </div>
+                
+                <div class="game-controls">
+                    <button id="newGameBtn" class="btn btn-primary">🆕 新しいゲーム</button>
+                    <button id="resetBtn" class="btn btn-secondary">🔄 リセット</button>
+                </div>
+            </div>
+            
+            <!-- 右側: ステータス・コントロール (40%) -->
+            <div class="status-section">
+                <div class="game-mode-selector">
+                    <h3>🎯 ゲームモード</h3>
+                    <div class="mode-buttons">
+                        <button id="pvpMode" class="btn mode-btn active" data-mode="PVP">
+                            👥 PVP (プレイヤー vs プレイヤー)
+                        </button>
+                        <button id="pvaMode" class="btn mode-btn" data-mode="PVA">
+                            🤖 PVA (プレイヤー vs AI)
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="game-status">
+                    <h3>📊 ゲーム状態</h3>
+                    <div class="status-info">
+                        <div class="current-player">
+                            <span class="label">現在のプレイヤー:</span>
+                            <span id="currentPlayer" class="player-x">X</span>
+                        </div>
+                        <div class="game-state">
+                            <span class="label">ゲーム状態:</span>
+                            <span id="gameState">準備中</span>
+                        </div>
+                        <div class="move-count">
+                            <span class="label">手数:</span>
+                            <span id="moveCount">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="game-result" id="gameResult" style="display: none;">
+                    <h3>🏆 結果</h3>
+                    <div id="resultMessage"></div>
+                </div>
+                
+                <div class="game-history">
+                    <h3>📝 履歴・データ</h3>
+                    <div class="history-controls">
+                        <button id="showHistoryBtn" class="btn btn-info">📊 履歴表示</button>
+                        <button id="downloadBtn" class="btn btn-success">💾 JSON ダウンロード</button>
+                        <button id="clearHistoryBtn" class="btn btn-warning">🗑️ 履歴クリア</button>
+                    </div>
+                    <div id="historyDisplay" class="history-display" style="display: none;">
+                        <div id="historyContent"></div>
+                    </div>
+                </div>
+                
+                <div class="move-log">
+                    <h3>🎯 手順ログ</h3>
+                    <div id="moveLog" class="move-list"></div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Tic-Tac-Toe Game - Created with Node.js & Express</p>
+        </footer>
+    </div>
+    
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>AI thinking...</p>
+        </div>
+    </div>
+    
+    <!-- Modal for history display -->
+    <div id="historyModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📊 ゲーム履歴</h3>
+                <button id="closeModal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" id="modalHistoryContent">
+                <!-- History content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="message-container"></div>
+    
+    <script src="js/game.js"></script>
+</body>
+</html>
