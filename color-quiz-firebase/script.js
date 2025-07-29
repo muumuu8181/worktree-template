@@ -1051,7 +1051,13 @@ class QuizApp {
         SafeStorage.setItem('questionMastery', this.questionMastery);
         
         // Firebase同期（ログイン時のみ）
-        if (this.isCloudSyncEnabled && window.firebaseConfig && window.firebaseConfig.currentUser) {
+        console.log('Firebase同期チェック:', {
+            isCloudSyncEnabled: this.isCloudSyncEnabled,
+            hasFirebaseConfig: !!window.firebaseConfig,
+            currentUser: window.firebaseConfig?.currentUser?.uid || 'なし'
+        });
+        
+        if (this.isCloudSyncEnabled && window.firebaseConfig) {
             this.syncMasteryDataToFirebase();
         }
     }
@@ -1895,7 +1901,11 @@ class QuizApp {
     }
     
     async syncMasteryDataToFirebase() {
-        if (!this.isCloudSyncEnabled || !window.firebaseConfig) return;
+        console.log('🔄 Firebase同期開始 - userId:', this.currentUserId);
+        if (!this.isCloudSyncEnabled || !window.firebaseConfig) {
+            console.log('❌ Firebase同期条件未満足');
+            return;
+        }
         
         try {
             const masteryData = {
@@ -1904,32 +1914,51 @@ class QuizApp {
                 lastUpdated: new Date().toISOString()
             };
             
+            console.log('📊 Firebase同期データ:', {
+                userId: this.currentUserId,
+                answerHistoryKeys: Object.keys(this.answerHistory).length,
+                questionMasteryKeys: Object.keys(this.questionMastery).length
+            });
+            
             await window.firebaseConfig.saveUserData(this.currentUserId, {
                 masteryData: masteryData
             });
             
-            console.log('📊 習熟度データをFirebaseに同期完了');
+            console.log('✅ 習熟度データをFirebaseに同期完了');
         } catch (error) {
             console.error('❌ 習熟度データ同期エラー:', error);
         }
     }
     
     async loadMasteryDataFromFirebase() {
-        if (!this.isCloudSyncEnabled || !window.firebaseConfig) return;
+        console.log('📥 Firebaseからデータ読み込み開始 - userId:', this.currentUserId);
+        if (!this.isCloudSyncEnabled || !window.firebaseConfig) {
+            console.log('❌ Firebase読み込み条件未満足');
+            return;
+        }
         
         try {
             const userData = await window.firebaseConfig.getUserData(this.currentUserId);
+            console.log('📥 Firebase取得データ:', userData ? 'データあり' : 'データなし');
             
             if (userData && userData.masteryData) {
                 // Firebaseデータとローカルデータをマージ
-                this.answerHistory = { ...this.answerHistory, ...userData.masteryData.answerHistory };
-                this.questionMastery = { ...this.questionMastery, ...userData.masteryData.questionMastery };
+                const cloudAnswerHistory = userData.masteryData.answerHistory || {};
+                const cloudQuestionMastery = userData.masteryData.questionMastery || {};
+                
+                this.answerHistory = { ...this.answerHistory, ...cloudAnswerHistory };
+                this.questionMastery = { ...this.questionMastery, ...cloudQuestionMastery };
                 
                 // ローカルストレージも更新
                 SafeStorage.setItem('answerHistory', this.answerHistory);
                 SafeStorage.setItem('questionMastery', this.questionMastery);
                 
-                console.log('📊 Firebaseから習熟度データを読み込み完了');
+                console.log('✅ Firebaseから習熟度データを読み込み完了:', {
+                    cloudAnswerKeys: Object.keys(cloudAnswerHistory).length,
+                    cloudMasteryKeys: Object.keys(cloudQuestionMastery).length,
+                    mergedAnswerKeys: Object.keys(this.answerHistory).length,
+                    mergedMasteryKeys: Object.keys(this.questionMastery).length
+                });
             }
         } catch (error) {
             console.error('❌ 習熟度データ読み込みエラー:', error);
