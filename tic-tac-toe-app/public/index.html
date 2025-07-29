@@ -3,14 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic-Tac-Toe Game - PVP/PVA対応</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Tic-Tac-Toe Game - GitHub Pages版</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+        }
+
+        /* Main game container - 60% / 40% split */
+        .game-container {
+            display: flex;
+            gap: 30px;
+            min-height: 600px;
+        }
+
+        /* Left section - Game Board (60%) */
+        .game-board-section {
+            flex: 0 0 60%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Game Board - 3x3 grid with 80px cells */
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(3, 80px);
+            gap: 4px;
+            background-color: #34495e;
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        /* Individual cells - exactly 80px × 80px */
+        .cell {
+            width: 80px;
+            height: 80px;
+            background-color: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .cell:hover {
+            background-color: #d5dbdb;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Player X - Red (#FF0000) */
+        .cell.x {
+            color: #FF0000;
+            background-color: #ffe6e6;
+            border-color: #FF0000;
+        }
+
+        /* Player O - Blue (#0000FF) */
+        .cell.o {
+            color: #0000FF;
+            background-color: #e6e6ff;
+            border-color: #0000FF;
+        }
+
+        /* Winning line - Yellow background (#FFFF00) */
+        .cell.winning {
+            background-color: #FFFF00 !important;
+            border-color: #f39c12 !important;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Game Controls */
+        .game-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        /* Right section - Status (40%) */
+        .status-section {
+            flex: 0 0 40%;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            max-height: 600px;
+        }
+
+        .status-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        /* Game Mode Selector */
+        .game-mode-selector {
+            margin-bottom: 25px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 12px;
+            text-align: left;
+            font-size: 0.95rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            border: 2px solid #bdc3c7;
+            background: #ecf0f1;
+            cursor: pointer;
+        }
+
+        .mode-btn.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+
+        /* Game Status */
+        .game-status {
+            margin-bottom: 25px;
+        }
+
+        .status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .status-info > div {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #ffffff;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* Player indicators */
+        .player-x {
+            color: #FF0000;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .player-o {
+            color: #0000FF;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Game Result */
+        .game-result {
+            background: #e8f5e8;
+            border: 2px solid #27ae60;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .game-result.winner-x {
+            background: #ffe6e6;
+            border-color: #FF0000;
+        }
+
+        .game-result.winner-o {
+            background: #e6e6ff;
+            border-color: #0000FF;
+        }
+
+        .game-result.draw {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        /* History Controls */
+        .history-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        /* Move Log */
+        .move-log {
+            margin-top: 20px;
+        }
+
+        .move-list {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .move-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .move-item:last-child {
+            border-bottom: none;
+        }
+
+        .move-item.ai {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            background-color: #3498db;
+            color: white;
+            border: 2px solid #3498db;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            border-color: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+            border-color: #7f8c8d;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            border-color: #27ae60;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+            border-color: #229954;
+        }
+
+        .btn-warning {
+            background-color: #f39c12;
+            border-color: #f39c12;
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+            border-color: #e67e22;
+        }
+
+        /* Message Container */
+        .message-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+        }
+
+        .message {
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.success {
+            background-color: #27ae60;
+        }
+
+        .message.error {
+            background-color: #e74c3c;
+        }
+
+        .message.info {
+            background-color: #3498db;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🎮 Tic-Tac-Toe Game</h1>
-            <p>Node.js Express Tic-Tac-Toe with PVP/PVA Support</p>
+            <p>GitHub Pages版 - PVP/PVA対応</p>
         </header>
         
         <main class="game-container">
@@ -66,7 +443,7 @@
                     </div>
                 </div>
                 
-                <div class="game-result" id="gameResult" style="display: none;">
+                <div class="game-result" id="gameResult">
                     <h3>🏆 結果</h3>
                     <div id="resultMessage"></div>
                 </div>
@@ -74,12 +451,9 @@
                 <div class="game-history">
                     <h3>📝 履歴・データ</h3>
                     <div class="history-controls">
-                        <button id="showHistoryBtn" class="btn btn-info">📊 履歴表示</button>
+                        <button id="showHistoryBtn" class="btn btn-warning">📊 履歴表示</button>
                         <button id="downloadBtn" class="btn btn-success">💾 JSON ダウンロード</button>
                         <button id="clearHistoryBtn" class="btn btn-warning">🗑️ 履歴クリア</button>
-                    </div>
-                    <div id="historyDisplay" class="history-display" style="display: none;">
-                        <div id="historyContent"></div>
                     </div>
                 </div>
                 
@@ -89,36 +463,432 @@
                 </div>
             </div>
         </main>
-        
-        <footer>
-            <p>&copy; 2025 Tic-Tac-Toe Game - Created with Node.js & Express</p>
-        </footer>
-    </div>
-    
-    <!-- Loading overlay -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>AI thinking...</p>
-        </div>
-    </div>
-    
-    <!-- Modal for history display -->
-    <div id="historyModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📊 ゲーム履歴</h3>
-                <button id="closeModal" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body" id="modalHistoryContent">
-                <!-- History content will be loaded here -->
-            </div>
-        </div>
     </div>
     
     <!-- Success/Error Messages -->
     <div id="messageContainer" class="message-container"></div>
     
-    <script src="js/game.js"></script>
+    <script>
+        // GitHub Pages用 Static Tic-Tac-Toe Game
+        class StaticTicTacToeGame {
+            constructor() {
+                this.board = Array(9).fill('');
+                this.currentPlayer = 'X';
+                this.gameMode = 'PVP';
+                this.gameStatus = 'playing';
+                this.winner = null;
+                this.winningLine = null;
+                this.moves = [];
+                this.gameHistory = JSON.parse(localStorage.getItem('ticTacToeHistory') || '[]');
+                this.isWaitingForAI = false;
+                
+                this.initializeElements();
+                this.attachEventListeners();
+                this.showMessage('GitHub Pages版 Tic-Tac-Toeゲームを開始！', 'info');
+            }
+            
+            initializeElements() {
+                this.boardElement = document.getElementById('gameBoard');
+                this.cells = document.querySelectorAll('.cell');
+                this.newGameBtn = document.getElementById('newGameBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.pvpModeBtn = document.getElementById('pvpMode');
+                this.pvaModeBtn = document.getElementById('pvaMode');
+                this.currentPlayerElement = document.getElementById('currentPlayer');
+                this.gameStateElement = document.getElementById('gameState');
+                this.moveCountElement = document.getElementById('moveCount');
+                this.gameResultElement = document.getElementById('gameResult');
+                this.resultMessageElement = document.getElementById('resultMessage');
+                this.moveLogElement = document.getElementById('moveLog');
+                this.showHistoryBtn = document.getElementById('showHistoryBtn');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.clearHistoryBtn = document.getElementById('clearHistoryBtn');
+                this.messageContainer = document.getElementById('messageContainer');
+            }
+            
+            attachEventListeners() {
+                this.newGameBtn.addEventListener('click', () => this.startNewGame());
+                this.resetBtn.addEventListener('click', () => this.resetGame());
+                this.pvpModeBtn.addEventListener('click', () => this.setGameMode('PVP'));
+                this.pvaModeBtn.addEventListener('click', () => this.setGameMode('PVA'));
+                
+                this.cells.forEach((cell, index) => {
+                    cell.addEventListener('click', () => this.handleCellClick(index));
+                });
+                
+                this.showHistoryBtn.addEventListener('click', () => this.showHistory());
+                this.downloadBtn.addEventListener('click', () => this.downloadHistory());
+                this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
+            }
+            
+            setGameMode(mode) {
+                this.gameMode = mode;
+                
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                if (mode === 'PVP') {
+                    this.pvpModeBtn.classList.add('active');
+                } else {
+                    this.pvaModeBtn.classList.add('active');
+                }
+                
+                this.showMessage(`ゲームモードを${mode}に変更しました`, 'info');
+                
+                if (this.gameStatus === 'playing') {
+                    this.resetGame();
+                }
+            }
+            
+            startNewGame() {
+                this.board = Array(9).fill('');
+                this.currentPlayer = 'X';
+                this.gameStatus = 'playing';
+                this.winner = null;
+                this.winningLine = null;
+                this.moves = [];
+                this.isWaitingForAI = false;
+                
+                this.updateUI();
+                this.clearMoveLog();
+                this.hideGameResult();
+                this.showMessage('新しいゲームを開始しました！', 'success');
+            }
+            
+            handleCellClick(position) {
+                if (this.gameStatus !== 'playing') {
+                    this.showMessage('ゲームが終了しています。新しいゲームを開始してください。', 'error');
+                    return;
+                }
+                
+                if (this.board[position] !== '') {
+                    this.showMessage('既に埋まっているセルです', 'error');
+                    return;
+                }
+                
+                if (this.isWaitingForAI) {
+                    this.showMessage('AIの手番を待っています...', 'info');
+                    return;
+                }
+                
+                if (this.gameMode === 'PVA' && this.currentPlayer === 'O') {
+                    this.showMessage('AIの手番です', 'info');
+                    return;
+                }
+                
+                this.makeMove(position, this.currentPlayer);
+            }
+            
+            makeMove(position, player) {
+                this.board[position] = player;
+                this.moves.push({
+                    position,
+                    player,
+                    timestamp: new Date().toISOString()
+                });
+                
+                this.addMoveToLog(position, player, false);
+                
+                const winResult = this.checkWinner(this.board);
+                if (winResult.winner) {
+                    this.gameStatus = 'won';
+                    this.winner = winResult.winner;
+                    this.winningLine = winResult.line;
+                    this.handleGameEnd();
+                } else if (this.board.every(cell => cell !== '')) {
+                    this.gameStatus = 'draw';
+                    this.handleGameEnd();
+                } else {
+                    this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                    
+                    if (this.gameMode === 'PVA' && this.currentPlayer === 'O' && this.gameStatus === 'playing') {
+                        this.isWaitingForAI = true;
+                        setTimeout(() => {
+                            this.makeAIMove();
+                            this.isWaitingForAI = false;
+                        }, 500);
+                    }
+                }
+                
+                this.updateUI();
+            }
+            
+            makeAIMove() {
+                const availablePositions = this.board
+                    .map((cell, index) => cell === '' ? index : null)
+                    .filter(pos => pos !== null);
+                
+                if (availablePositions.length === 0) return;
+                
+                let aiPosition = this.findWinningMove(this.board, 'O') || 
+                                this.findWinningMove(this.board, 'X') || 
+                                availablePositions[Math.floor(Math.random() * availablePositions.length)];
+                
+                this.board[aiPosition] = 'O';
+                this.moves.push({
+                    position: aiPosition,
+                    player: 'O',
+                    timestamp: new Date().toISOString(),
+                    isAI: true
+                });
+                
+                this.addMoveToLog(aiPosition, 'O', true);
+                
+                const winResult = this.checkWinner(this.board);
+                if (winResult.winner) {
+                    this.gameStatus = 'won';
+                    this.winner = winResult.winner;
+                    this.winningLine = winResult.line;
+                    this.handleGameEnd();
+                } else if (this.board.every(cell => cell !== '')) {
+                    this.gameStatus = 'draw';
+                    this.handleGameEnd();
+                } else {
+                    this.currentPlayer = 'X';
+                }
+                
+                this.updateUI();
+            }
+            
+            findWinningMove(board, player) {
+                const winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                    [0, 4, 8], [2, 4, 6]
+                ];
+                
+                for (const pattern of winPatterns) {
+                    const [a, b, c] = pattern;
+                    const line = [board[a], board[b], board[c]];
+                    const playerCount = line.filter(cell => cell === player).length;
+                    const emptyCount = line.filter(cell => cell === '').length;
+                    
+                    if (playerCount === 2 && emptyCount === 1) {
+                        return pattern.find(pos => board[pos] === '');
+                    }
+                }
+                
+                return null;
+            }
+            
+            checkWinner(board) {
+                const winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                    [0, 4, 8], [2, 4, 6]
+                ];
+                
+                for (const pattern of winPatterns) {
+                    const [a, b, c] = pattern;
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        return {
+                            winner: board[a],
+                            line: pattern
+                        };
+                    }
+                }
+                
+                return { winner: null, line: null };
+            }
+            
+            updateUI() {
+                this.cells.forEach((cell, index) => {
+                    const cellValue = this.board[index];
+                    cell.textContent = cellValue;
+                    cell.className = 'cell';
+                    
+                    if (cellValue === 'X') {
+                        cell.classList.add('x');
+                    } else if (cellValue === 'O') {
+                        cell.classList.add('o');
+                    }
+                });
+                
+                if (this.winningLine) {
+                    this.winningLine.forEach(index => {
+                        this.cells[index].classList.add('winning');
+                    });
+                }
+                
+                this.currentPlayerElement.textContent = this.currentPlayer;
+                this.currentPlayerElement.className = `player-${this.currentPlayer.toLowerCase()}`;
+                this.gameStateElement.textContent = this.getGameStatusText();
+                this.moveCountElement.textContent = this.moves.length;
+            }
+            
+            getGameStatusText() {
+                switch (this.gameStatus) {
+                    case 'playing':
+                        if (this.gameMode === 'PVA' && this.currentPlayer === 'O') {
+                            return 'AI思考中...';
+                        }
+                        return 'プレイ中';
+                    case 'won':
+                        return `${this.winner} の勝利！`;
+                    case 'draw':
+                        return '引き分け';
+                    default:
+                        return '準備中';
+                }
+            }
+            
+            handleGameEnd() {
+                this.showGameResult();
+                
+                if (this.gameStatus === 'won') {
+                    this.showMessage(`🎉 プレイヤー ${this.winner} の勝利！`, 'success');
+                } else if (this.gameStatus === 'draw') {
+                    this.showMessage('🤝 引き分けです！', 'info');
+                }
+                
+                this.addToLocalHistory();
+            }
+            
+            showGameResult() {
+                if (this.gameStatus === 'playing') {
+                    this.hideGameResult();
+                    return;
+                }
+                
+                this.gameResultElement.style.display = 'block';
+                this.gameResultElement.className = 'game-result';
+                
+                let message = '';
+                if (this.gameStatus === 'won') {
+                    message = `🏆 プレイヤー ${this.winner} の勝利！`;
+                    this.gameResultElement.classList.add(`winner-${this.winner.toLowerCase()}`);
+                } else if (this.gameStatus === 'draw') {
+                    message = '🤝 引き分けです！';
+                    this.gameResultElement.classList.add('draw');
+                }
+                
+                this.resultMessageElement.innerHTML = `
+                    <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">${message}</div>
+                    <div>総手数: ${this.moves.length}</div>
+                    <div>ゲームモード: ${this.gameMode}</div>
+                `;
+            }
+            
+            hideGameResult() {
+                this.gameResultElement.style.display = 'none';
+            }
+            
+            resetGame() {
+                this.board = Array(9).fill('');
+                this.currentPlayer = 'X';
+                this.gameStatus = 'playing';
+                this.winner = null;
+                this.winningLine = null;
+                this.moves = [];
+                this.isWaitingForAI = false;
+                
+                this.cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.className = 'cell';
+                });
+                
+                this.currentPlayerElement.textContent = 'X';
+                this.currentPlayerElement.className = 'player-x';
+                this.gameStateElement.textContent = '準備中';
+                this.moveCountElement.textContent = '0';
+                
+                this.clearMoveLog();
+                this.hideGameResult();
+                this.showMessage('ゲームをリセットしました', 'info');
+            }
+            
+            addMoveToLog(position, player, isAI = false) {
+                const moveItem = document.createElement('div');
+                moveItem.className = `move-item ${isAI ? 'ai' : ''}`;
+                moveItem.textContent = `${player}: セル${position + 1} ${isAI ? '(AI)' : ''}`;
+                this.moveLogElement.appendChild(moveItem);
+                this.moveLogElement.scrollTop = this.moveLogElement.scrollHeight;
+            }
+            
+            clearMoveLog() {
+                this.moveLogElement.innerHTML = '';
+            }
+            
+            showHistory() {
+                if (this.gameHistory.length === 0) {
+                    this.showMessage('まだゲーム履歴がありません。', 'info');
+                    return;
+                }
+                
+                let historyText = `ゲーム履歴 (${this.gameHistory.length}件):\n\n`;
+                this.gameHistory.forEach((game, index) => {
+                    const result = game.gameStatus === 'won' ? `${game.winner}の勝利` : '引き分け';
+                    historyText += `${index + 1}. ${result} (${game.moves.length}手) - ${game.gameMode}モード\n`;
+                });
+                
+                alert(historyText);
+            }
+            
+            downloadHistory() {
+                if (this.gameHistory.length === 0) {
+                    this.showMessage('ダウンロードする履歴がありません。', 'error');
+                    return;
+                }
+                
+                const dataStr = JSON.stringify(this.gameHistory, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', 'tictactoe_results.json');
+                linkElement.click();
+                
+                this.showMessage('ゲーム履歴をダウンロードしました', 'success');
+            }
+            
+            clearHistory() {
+                if (confirm('ゲーム履歴をクリアしますか？この操作は取り消せません。')) {
+                    this.gameHistory = [];
+                    localStorage.setItem('ticTacToeHistory', JSON.stringify(this.gameHistory));
+                    this.showMessage('ゲーム履歴をクリアしました', 'info');
+                }
+            }
+            
+            addToLocalHistory() {
+                if (this.gameStatus !== 'playing') {
+                    const gameRecord = {
+                        id: Date.now().toString(),
+                        board: [...this.board],
+                        gameMode: this.gameMode,
+                        gameStatus: this.gameStatus,
+                        winner: this.winner,
+                        winningLine: this.winningLine,
+                        moves: [...this.moves],
+                        startTime: new Date().toISOString(),
+                        endTime: new Date().toISOString()
+                    };
+                    
+                    this.gameHistory.push(gameRecord);
+                    localStorage.setItem('ticTacToeHistory', JSON.stringify(this.gameHistory));
+                }
+            }
+            
+            showMessage(message, type = 'info') {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${type}`;
+                messageElement.textContent = message;
+                
+                this.messageContainer.appendChild(messageElement);
+                
+                setTimeout(() => {
+                    if (messageElement.parentNode) {
+                        messageElement.parentNode.removeChild(messageElement);
+                    }
+                }, 4000);
+            }
+        }
+
+        // Initialize game when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.game = new StaticTicTacToeGame();
+            console.log('🎮 Static Tic-Tac-Toe Game for GitHub Pages initialized!');
+        });
+    </script>
 </body>
 </html>
