@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🕐 Busy Time Tracker</title>
+    <title>🕐 忙しい人のタイムトラッカー</title>
     <style>
         /* Global Styles */
         * {
@@ -621,8 +621,8 @@
         <!-- Left Panel - Recording Controls (40%) -->
         <div class="left-panel">
             <header>
-                <h1>🕐 Busy Time Tracker</h1>
-                <p class="subtitle">One-click activity recording (Static Version)</p>
+                <h1>🕐 忙しい人のタイムトラッカー</h1>
+                <p class="subtitle">ワンクリックで活動を記録（静的バージョン）</p>
             </header>
 
             <!-- Category Buttons -->
@@ -631,35 +631,35 @@
                 <div class="button-grid">
                     <button class="record-button" data-category="Work" id="btn-work">
                         <span class="icon">💼</span>
-                        <span class="label">Work</span>
+                        <span class="label">仕事</span>
                     </button>
                     <button class="record-button" data-category="Break" id="btn-break">
                         <span class="icon">☕</span>
-                        <span class="label">Break</span>
+                        <span class="label">休憩</span>
                     </button>
                     <button class="record-button" data-category="Meeting" id="btn-meeting">
                         <span class="icon">👥</span>
-                        <span class="label">Meeting</span>
+                        <span class="label">会議</span>
                     </button>
                     <button class="record-button custom-button" data-category="Custom" id="btn-custom">
                         <span class="icon">✏️</span>
-                        <span class="label">Custom</span>
+                        <span class="label">カスタム</span>
                     </button>
                 </div>
             </div>
 
             <!-- Custom Activity Input -->
             <div class="custom-section">
-                <h3>Custom Activity</h3>
+                <h3>カスタムアクティビティ</h3>
                 <div class="custom-input-group">
-                    <input type="text" id="custom-text" placeholder="Enter custom activity (max 50 chars)" maxlength="50">
+                    <input type="text" id="custom-text" placeholder="カスタムアクティビティを入力（最大50文字）" maxlength="50">
                     <button class="record-button start-custom-btn" id="start-custom" disabled>
                         <span class="icon">▶️</span>
                         <span class="label">Start</span>
                     </button>
                 </div>
                 <div class="char-counter">
-                    <span id="char-count">0</span>/50 characters
+                    <span id="char-count">0</span>/50 文字
                 </div>
             </div>
 
@@ -669,20 +669,20 @@
                 <div class="control-buttons">
                     <button class="control-btn export-btn" id="export-btn">
                         <span class="icon">📁</span>
-                        Export JSON
+                        JSONエクスポート
                     </button>
                     <button class="control-btn clear-btn" id="clear-btn">
                         <span class="icon">🗑️</span>
-                        Clear All
+                        すべてクリア
                     </button>
                 </div>
             </div>
 
             <!-- Current Status -->
             <div class="status-section">
-                <h3>Current Status</h3>
+                <h3>現在のステータス</h3>
                 <div id="current-status" class="status-display">
-                    <span id="status-text">Ready to track</span>
+                    <span id="status-text">記録準備完了</span>
                     <span id="live-timer" class="live-timer"></span>
                 </div>
             </div>
@@ -692,19 +692,19 @@
         <div class="right-panel">
             <!-- Summary Section -->
             <div class="summary-section">
-                <h2>📊 Summary</h2>
+                <h2>📊 サマリー</h2>
                 <div id="summary" class="summary-display">
                     <div class="summary-stats">
                         <div class="stat-item">
-                            <span class="stat-label">Total Records:</span>
+                            <span class="stat-label">合計記録数:</span>
                             <span class="stat-value" id="total-records">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Running:</span>
+                            <span class="stat-label">実行中:</span>
                             <span class="stat-value" id="running-count">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Total Time:</span>
+                            <span class="stat-label">合計時間:</span>
                             <span class="stat-value" id="total-time">0:00:00</span>
                         </div>
                     </div>
@@ -716,25 +716,25 @@
 
             <!-- Timeline Section -->
             <div class="timeline-section">
-                <h2>📈 Timeline</h2>
+                <h2>📈 タイムライン</h2>
                 <div class="timeline-controls">
                     <select id="filter-category" class="filter-select">
-                        <option value="">All Categories</option>
-                        <option value="Work">Work</option>
-                        <option value="Break">Break</option>
-                        <option value="Meeting">Meeting</option>
-                        <option value="Custom">Custom</option>
+                        <option value="">すべてのカテゴリ</option>
+                        <option value="Work">仕事</option>
+                        <option value="Break">休憩</option>
+                        <option value="Meeting">会議</option>
+                        <option value="Custom">カスタム</option>
                     </select>
                     <button class="control-btn refresh-btn" id="refresh-btn">
                         <span class="icon">🔄</span>
-                        Refresh
+                        更新
                     </button>
                 </div>
                 <div class="timeline-container">
                     <ul id="timeline" class="timeline">
                         <!-- Timeline entries will be populated here -->
                         <li class="timeline-empty">
-                            <span class="empty-message">No activities recorded yet. Click a category button to start tracking!</span>
+                            <span class="empty-message">まだアクティビティが記録されていません。カテゴリボタンをクリックして追跡を開始してください！</span>
                         </li>
                     </ul>
                 </div>
@@ -814,7 +814,7 @@
                     localStorage.setItem('busyTimeTracker', JSON.stringify(data));
                 } catch (error) {
                     console.error('Error saving to storage:', error);
-                    this.showMessage('Error saving data to local storage', 'error');
+                    this.showMessage('ローカルストレージへの保存エラー', 'error');
                 }
             }
 
@@ -917,7 +917,7 @@
                         this.startActivity(category);
                     }
                 } catch (error) {
-                    this.showMessage('Error processing request: ' + error.message, 'error');
+                    this.showMessage('リクエスト処理エラー: ' + error.message, 'error');
                 }
             }
 
@@ -927,7 +927,7 @@
                 const text = customText.value.trim();
                 
                 if (!text) {
-                    this.showMessage('Please enter a custom activity name', 'error');
+                    this.showMessage('カスタムアクティビティ名を入力してください', 'error');
                     return;
                 }
 
@@ -937,7 +937,7 @@
                     this.updateCustomButtonState();
                     this.updateCharacterCount();
                 } catch (error) {
-                    this.showMessage('Error starting custom activity: ' + error.message, 'error');
+                    this.showMessage('カスタムアクティビティ開始エラー: ' + error.message, 'error');
                 }
             }
 
@@ -947,37 +947,37 @@
                 
                 // Input validation
                 if (!category) {
-                    throw new Error('Category is required');
+                    throw new Error('カテゴリが必要です');
                 }
 
                 // Custom category validation
                 if (category === 'Custom' && !customText.trim()) {
-                    throw new Error('Invalid: Empty custom activity');
+                    throw new Error('無効: カスタムアクティビティが空です');
                 }
 
                 let finalCategory = category;
                 if (category === 'Custom' && customText) {
                     if (customText.length > 50) {
-                        throw new Error('Custom text must be 50 characters or less');
+                        throw new Error('カスタムテキストは50文字以内です');
                     }
                     finalCategory = `Custom: ${customText}`;
                 }
 
                 // Check for duplicate running activity
                 if (this.currentRecord && this.currentRecord.category === finalCategory) {
-                    throw new Error('Already running');
+                    throw new Error('すでに実行中です');
                 }
 
                 // Check record limit
                 if (this.records.length >= this.maxRecords) {
-                    throw new Error('Limit exceeded');
+                    throw new Error('記録の上限を超えました');
                 }
 
                 // Stop any currently running activity
                 if (this.currentRecord) {
                     this.currentRecord.end = timestamp;
                     this.currentRecord.duration = this.currentRecord.end - this.currentRecord.start;
-                    this.showMessage(`Auto-stopped: ${this.currentRecord.category}`, 'info');
+                    this.showMessage(`自動停止: ${this.currentRecord.category}`, 'info');
                 }
 
                 // Create new record
@@ -996,7 +996,7 @@
                 this.startLiveTimer();
                 
                 const displayCategory = category === 'Custom' ? `Custom: ${customText}` : category;
-                this.showMessage(`Started ${displayCategory}`, 'success');
+                this.showMessage(`開始: ${displayCategory}`, 'success');
 
                 console.log(`Operation: START, Category: ${finalCategory}, Timestamp: ${timestamp}, Result: SUCCESS`);
             }
@@ -1008,11 +1008,11 @@
                 // Find record
                 const record = this.records.find(r => r.id === id);
                 if (!record) {
-                    throw new Error('Invalid: Record not found');
+                    throw new Error('無効: 記録が見つかりません');
                 }
 
                 if (record.end !== null) {
-                    throw new Error('Activity already stopped');
+                    throw new Error('すでに停止されています');
                 }
 
                 // Stop the record
@@ -1054,10 +1054,10 @@
                 const liveTimer = document.getElementById('live-timer');
 
                 if (this.currentRecord) {
-                    statusText.textContent = `Running: ${this.currentRecord.category}`;
+                    statusText.textContent = `実行中: ${this.currentRecord.category}`;
                     statusText.style.color = '#ff5722';
                 } else {
-                    statusText.textContent = 'Ready to track';
+                    statusText.textContent = '記録準備完了';
                     statusText.style.color = '#2e7d32';
                     liveTimer.textContent = '';
                 }
@@ -1179,7 +1179,7 @@
                 if (filteredRecords.length === 0) {
                     timeline.innerHTML = `
                         <li class="timeline-empty">
-                            <span class="empty-message">No activities found${filter ? ' for selected category' : ''}.</span>
+                            <span class="empty-message">アクティビティが見つかりません${filter ? '（選択されたカテゴリ）' : ''}。</span>
                         </li>
                     `;
                     return;
@@ -1197,10 +1197,10 @@
                         <div class="timeline-entry">
                             <div class="timeline-info">
                                 <div class="timeline-category ${isRunning ? 'running' : ''}">
-                                    ${record.category} ${isRunning ? '(Running)' : ''}
+                                    ${record.category} ${isRunning ? '(実行中)' : ''}
                                 </div>
                                 <div class="timeline-times">
-                                    Started: ${this.formatTime(record.start)} ${record.end ? '| Ended: ' + this.formatTime(record.end) : ''}
+                                    開始: ${this.formatTime(record.start)} ${record.end ? '| 終了: ' + this.formatTime(record.end) : ''}
                                 </div>
                             </div>
                             <div class="timeline-duration ${isRunning ? 'running' : ''}">
@@ -1245,17 +1245,17 @@
                     
                     URL.revokeObjectURL(url);
                     
-                    this.showMessage('Data exported successfully', 'success');
+                    this.showMessage('データを正常にエクスポートしました', 'success');
                     
                 } catch (error) {
                     console.error('Export error:', error);
-                    this.showMessage('Export failed: ' + error.message, 'error');
+                    this.showMessage('エクスポート失敗: ' + error.message, 'error');
                 }
             }
 
             // Clear all data
             clearAllData() {
-                if (!confirm('Are you sure you want to clear all recorded data? This action cannot be undone.')) {
+                if (!confirm('すべての記録データを削除しますか？この操作は元に戻せません。')) {
                     return;
                 }
 
@@ -1270,7 +1270,7 @@
                     this.saveToStorage();
                     this.updateUI();
                     
-                    this.showMessage(`Cleared ${recordCount} records`, 'success');
+                    this.showMessage(`${recordCount}件の記録をクリアしました`, 'success');
                     console.log(`Operation: CLEAR, Category: all, Timestamp: ${Date.now()}, Result: SUCCESS, Details: Cleared ${recordCount} records`);
 
                 } catch (error) {
