@@ -1938,6 +1938,45 @@ class QuizApp {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // QuizApp を先に初期化
     window.quizApp = new QuizApp();
+    
+    // Firebase初期化
+    if (window.firebaseConfig) {
+        const initialized = await window.firebaseConfig.initialize();
+        
+        const cloudStatus = document.getElementById('cloud-status');
+        if (cloudStatus) {
+            if (initialized) {
+                cloudStatus.innerHTML = '<span class="status-indicator online">🌟 Firebase接続中</span>';
+            } else {
+                cloudStatus.innerHTML = '<span class="status-indicator error">⚠️ Firebase接続エラー</span>';
+            }
+        }
+        
+        // ログインボタンのイベントリスナー
+        const loginBtn = document.getElementById('login-btn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', async () => {
+                try {
+                    await window.firebaseConfig.signInWithGoogle();
+                } catch (error) {
+                    alert('ログインに失敗しました: ' + error.message);
+                }
+            });
+        }
+        
+        // ログアウトボタンのイベントリスナー
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await window.firebaseConfig.signOut();
+                } catch (error) {
+                    alert('ログアウトに失敗しました: ' + error.message);
+                }
+            });
+        }
+    }
 });
