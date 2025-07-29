@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busy Time Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Recording Controls (40%) -->
+        <div class="left-panel">
+            <header>
+                <h1>🕐 Busy Time Tracker</h1>
+                <p class="subtitle">One-click activity recording</p>
+            </header>
+
+            <!-- Category Buttons -->
+            <div class="category-section">
+                <h2>Categories</h2>
+                <div class="button-grid">
+                    <button class="record-button" data-category="Work" id="btn-work">
+                        <span class="icon">💼</span>
+                        <span class="label">Work</span>
+                    </button>
+                    <button class="record-button" data-category="Break" id="btn-break">
+                        <span class="icon">☕</span>
+                        <span class="label">Break</span>
+                    </button>
+                    <button class="record-button" data-category="Meeting" id="btn-meeting">
+                        <span class="icon">👥</span>
+                        <span class="label">Meeting</span>
+                    </button>
+                    <button class="record-button custom-button" data-category="Custom" id="btn-custom">
+                        <span class="icon">✏️</span>
+                        <span class="label">Custom</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Activity Input -->
+            <div class="custom-section">
+                <h3>Custom Activity</h3>
+                <div class="custom-input-group">
+                    <input type="text" id="custom-text" placeholder="Enter custom activity (max 50 chars)" maxlength="50">
+                    <button class="record-button start-custom-btn" id="start-custom" disabled>
+                        <span class="icon">▶️</span>
+                        <span class="label">Start</span>
+                    </button>
+                </div>
+                <div class="char-counter">
+                    <span id="char-count">0</span>/50 characters
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="control-section">
+                <h3>Controls</h3>
+                <div class="control-buttons">
+                    <button class="control-btn export-btn" id="export-btn">
+                        <span class="icon">📁</span>
+                        Export JSON
+                    </button>
+                    <button class="control-btn clear-btn" id="clear-btn">
+                        <span class="icon">🗑️</span>
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current Status -->
+            <div class="status-section">
+                <h3>Current Status</h3>
+                <div id="current-status" class="status-display">
+                    <span id="status-text">Ready to track</span>
+                    <span id="live-timer" class="live-timer"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Timeline & Summary (60%) -->
+        <div class="right-panel">
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <h2>📊 Summary</h2>
+                <div id="summary" class="summary-display">
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Records:</span>
+                            <span class="stat-value" id="total-records">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Running:</span>
+                            <span class="stat-value" id="running-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Time:</span>
+                            <span class="stat-value" id="total-time">0:00:00</span>
+                        </div>
+                    </div>
+                    <div class="category-breakdown" id="category-breakdown">
+                        <!-- Category totals will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline Section -->
+            <div class="timeline-section">
+                <h2>📈 Timeline</h2>
+                <div class="timeline-controls">
+                    <select id="filter-category" class="filter-select">
+                        <option value="">All Categories</option>
+                        <option value="Work">Work</option>
+                        <option value="Break">Break</option>
+                        <option value="Meeting">Meeting</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                    <button class="control-btn refresh-btn" id="refresh-btn">
+                        <span class="icon">🔄</span>
+                        Refresh
+                    </button>
+                </div>
+                <div class="timeline-container">
+                    <ul id="timeline" class="timeline">
+                        <!-- Timeline entries will be populated here -->
+                        <li class="timeline-empty">
+                            <span class="empty-message">No activities recorded yet. Click a category button to start tracking!</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="message-container" class="message-container">
+        <!-- Success/error messages will appear here -->
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
