@@ -1019,15 +1019,11 @@ class QuizApp {
     updateQuestionMastery(questionIndex, isCorrect) {
         // 現在の問題を取得
         const currentQuestion = this.questions[questionIndex];
-        const actualQuestionIndex = this.allQuestions.findIndex(q => 
-            q.question === currentQuestion.question && 
-            JSON.stringify(q.options) === JSON.stringify(currentQuestion.options)
-        );
         
-        // ハッシュベースのキーを生成
-        const questionKey = this.getQuestionKey(currentQuestion, actualQuestionIndex >= 0 ? actualQuestionIndex : questionIndex);
+        // 問題キーを直接生成（allQuestionsの検索をスキップ）
+        const questionKey = this.getQuestionKey(currentQuestion, questionIndex);
         const now = Date.now();
-        console.log('問題キー生成:', questionKey, 'インデックス:', questionIndex, '実際インデックス:', actualQuestionIndex);
+        console.log('問題キー生成:', questionKey, 'インデックス:', questionIndex);
         
         // 回答履歴を記録
         if (!this.answerHistory[questionKey]) {
