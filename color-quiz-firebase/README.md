@@ -4,7 +4,7 @@ Firebase連携による高度なクラウド同期機能を搭載した色彩検
 
 ## 🚀 デモ
 
-**👉 [今すぐ試す](https://muumuu8181.github.io/web-app-samples/color-quiz-app/)**
+**👉 [今すぐ試す](https://muumuu8181.github.io/published-apps/color-quiz-firebase/)**
 
 ## 🌟 主要機能
 
