@@ -92,12 +92,13 @@ class QuizApp {
         this.majorCategoryTitle = document.getElementById('major-category-title');
         this.minorCategorySummary = document.getElementById('minor-category-summary');
         
-        // 画像管理
+        // 画像管理（無効化）
         this.imageCache = new Map();
         this.supportedExtensions = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'];
         this.animationPatterns = ['correct', 'bounce', 'spin', 'pulse', 'zoom'];
         this.encourageAnimations = ['encourage', 'shake'];
         this.currentAnimationIndex = 0;
+        this.imageSearchEnabled = false; // 画像検索を無効化
         this.skipAnimations = false;
         this.answerHistory = [];
         this.selectedQuestionCount = 5;
@@ -119,7 +120,7 @@ class QuizApp {
         this.periodStart = document.getElementById('period-start');
         this.periodEnd = document.getElementById('period-end');
         this.categories = null;
-        this.initializeImages();
+        // this.initializeImages(); // 画像初期化を無効化
     }
     
     setupEventListeners() {
