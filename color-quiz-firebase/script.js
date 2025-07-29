@@ -860,11 +860,10 @@ class QuizApp {
         this.isAnswered = true;
         const isCorrect = selectedIndex === correctIndex;
         
-        // 履歴に追加
-        this.answerHistory.push(isCorrect);
-        
-        // 習熟度を更新
+        // 習熟度を更新（履歴への追加も含む）
+        console.log('回答記録:', this.currentQuestionIndex, isCorrect);
         this.updateQuestionMastery(this.currentQuestionIndex, isCorrect);
+        console.log('習熟度データ更新後:', Object.keys(this.questionMastery).length, '問記録済み');
         
         this.optionButtons.forEach((btn, index) => {
             btn.disabled = true;
@@ -1028,6 +1027,7 @@ class QuizApp {
         // ハッシュベースのキーを生成
         const questionKey = this.getQuestionKey(currentQuestion, actualQuestionIndex >= 0 ? actualQuestionIndex : questionIndex);
         const now = Date.now();
+        console.log('問題キー生成:', questionKey, 'インデックス:', questionIndex, '実際インデックス:', actualQuestionIndex);
         
         // 回答履歴を記録
         if (!this.answerHistory[questionKey]) {
@@ -1048,6 +1048,7 @@ class QuizApp {
         // 習熟度を計算 (0-10段階)
         const mastery = this.calculateMastery(questionKey);
         this.questionMastery[questionKey] = mastery;
+        console.log('習熟度更新:', questionKey, '→', mastery, '回答履歴数:', this.answerHistory[questionKey].length);
         
         // ローカルストレージに保存
         SafeStorage.setItem('answerHistory', this.answerHistory);
@@ -1231,6 +1232,8 @@ class QuizApp {
     
     // 習熟度分析表示
     showMasteryStats() {
+        console.log('習熟度分析開始 - 記録済み問題数:', Object.keys(this.questionMastery).length);
+        console.log('習熟度データ:', this.questionMastery);
         const masteryLevels = Array(11).fill(0); // 0-10段階
         
         // 習熟度分布を計算
