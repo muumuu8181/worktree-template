@@ -7,6 +7,8 @@
 1. **TEST_REPORT_TEMPLATE.md** - テスト実施報告書テンプレート
 2. **WORK_LOG_TEMPLATE.md** - 作業記録テンプレート
 3. **TROUBLESHOOTING_TEMPLATE.md** - トラブルシューティング記録テンプレート
+4. **NAMING_CONVENTION.md** - プロジェクト命名規則（v1形式）
+5. **QUICK_START.md** - クイックスタートガイド
 
 ## 🚀 使い方
 

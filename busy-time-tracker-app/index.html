@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕐 忙しい人のタイムトラッカー</title>
+    <style>
+        /* Global Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Main Container - Flexbox Layout */
+        .container {
+            display: flex;
+            flex-direction: row;
+            min-height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            margin: 10px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* Left Panel - 40% width as specified */
+        .left-panel {
+            width: 40%;
+            padding: 20px;
+            background: #ffffff;
+            border-right: 2px solid #e0e0e0;
+            overflow-y: auto;
+        }
+
+        /* Right Panel - 60% width as specified */
+        .right-panel {
+            width: 60%;
+            padding: 20px;
+            background: #f9f9f9; /* Timeline background as specified */
+            overflow-y: auto;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Section Headers */
+        h2 {
+            font-size: 24px; /* Summary font size as specified */
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        h3 {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 10px;
+            margin-top: 25px;
+        }
+
+        /* Record Buttons - 80px x 80px as specified */
+        .record-button {
+            width: 80px;
+            height: 80px;
+            background: #4CAF50; /* Button background as specified */
+            color: #000; /* Text color as specified */
+            border: none;
+            border-radius: 12px;
+            margin: 10px; /* Button margin as specified */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .record-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            background: #45a049;
+        }
+
+        .record-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Active button state - #FF0000 as specified */
+        .record-button.active {
+            background: #FF0000 !important;
+            color: #fff;
+            animation: pulse 2s infinite;
+        }
+
+        .record-button.active::after {
+            content: '⏸️';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+        }
+
+        /* Button Grid */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            justify-items: center;
+            margin-bottom: 20px;
+        }
+
+        /* Button Icons and Labels */
+        .record-button .icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .record-button .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Custom Input Section */
+        .custom-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .custom-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        #custom-text {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        #custom-text:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .start-custom-btn {
+            flex-shrink: 0;
+        }
+
+        .start-custom-btn:disabled {
+            background: #ccc !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .char-counter {
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+        }
+
+        /* Control Buttons */
+        .control-section {
+            margin-top: 20px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .export-btn {
+            background: #2196F3;
+            color: white;
+        }
+
+        .export-btn:hover {
+            background: #0b7dda;
+        }
+
+        .clear-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #da190b;
+        }
+
+        .refresh-btn {
+            background: #FF9800;
+            color: white;
+        }
+
+        .refresh-btn:hover {
+            background: #e68900;
+        }
+
+        /* Status Section */
+        .status-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .status-display {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #status-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2e7d32;
+        }
+
+        .live-timer {
+            font-size: 24px; /* Summary font size as specified */
+            font-weight: bold;
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            margin-bottom: 30px;
+        }
+
+        .summary-display {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 24px; /* Summary font size as specified */
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .category-breakdown {
+            margin-top: 15px;
+        }
+
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .category-time {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        /* Timeline Section */
+        .timeline-section {
+            flex: 1;
+        }
+
+        .timeline-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .timeline-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Timeline List - 16px font size as specified */
+        .timeline {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .timeline li {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 16px; /* Timeline font size as specified */
+            transition: background-color 0.3s ease;
+        }
+
+        .timeline li:hover {
+            background: #f8f9fa;
+        }
+
+        .timeline li:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .timeline-info {
+            flex: 1;
+        }
+
+        .timeline-category {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+
+        .timeline-category.running {
+            color: #FF0000;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.5; }
+        }
+
+        .timeline-times {
+            font-size: 14px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timeline-duration {
+            font-size: 16px; /* Timeline font size as specified */
+            font-weight: bold;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            text-align: right;
+            min-width: 80px;
+        }
+
+        .timeline-duration.running {
+            color: #FF0000;
+            animation: pulse-text 1s infinite;
+        }
+
+        @keyframes pulse-text {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .timeline-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .empty-message {
+            display: block;
+            font-size: 16px; /* Timeline font size as specified */
+        }
+
+        /* Status Messages */
+        .message-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .message {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                margin: 5px;
+            }
+            
+            .left-panel, .right-panel {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .summary-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .timeline-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .filter-select {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .record-button {
+                width: 70px;
+                height: 70px;
+                margin: 5px;
+            }
+            
+            .record-button .icon {
+                font-size: 20px;
+            }
+            
+            .record-button .label {
+                font-size: 9px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Recording Controls (40%) -->
+        <div class="left-panel">
+            <header>
+                <h1>🕐 忙しい人のタイムトラッカー</h1>
+                <p class="subtitle">ワンクリックで活動を記録（静的バージョン）</p>
+            </header>
+
+            <!-- Category Buttons -->
+            <div class="category-section">
+                <h2>Categories</h2>
+                <div class="button-grid">
+                    <button class="record-button" data-category="Work" id="btn-work">
+                        <span class="icon">💼</span>
+                        <span class="label">仕事</span>
+                    </button>
+                    <button class="record-button" data-category="Break" id="btn-break">
+                        <span class="icon">☕</span>
+                        <span class="label">休憩</span>
+                    </button>
+                    <button class="record-button" data-category="Meeting" id="btn-meeting">
+                        <span class="icon">👥</span>
+                        <span class="label">会議</span>
+                    </button>
+                    <button class="record-button custom-button" data-category="Custom" id="btn-custom">
+                        <span class="icon">✏️</span>
+                        <span class="label">カスタム</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Activity Input -->
+            <div class="custom-section">
+                <h3>カスタムアクティビティ</h3>
+                <div class="custom-input-group">
+                    <input type="text" id="custom-text" placeholder="カスタムアクティビティを入力（最大50文字）" maxlength="50">
+                    <button class="record-button start-custom-btn" id="start-custom" disabled>
+                        <span class="icon">▶️</span>
+                        <span class="label">Start</span>
+                    </button>
+                </div>
+                <div class="char-counter">
+                    <span id="char-count">0</span>/50 文字
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="control-section">
+                <h3>Controls</h3>
+                <div class="control-buttons">
+                    <button class="control-btn export-btn" id="export-btn">
+                        <span class="icon">📁</span>
+                        JSONエクスポート
+                    </button>
+                    <button class="control-btn clear-btn" id="clear-btn">
+                        <span class="icon">🗑️</span>
+                        すべてクリア
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current Status -->
+            <div class="status-section">
+                <h3>現在のステータス</h3>
+                <div id="current-status" class="status-display">
+                    <span id="status-text">記録準備完了</span>
+                    <span id="live-timer" class="live-timer"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Timeline & Summary (60%) -->
+        <div class="right-panel">
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <h2>📊 サマリー</h2>
+                <div id="summary" class="summary-display">
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">合計記録数:</span>
+                            <span class="stat-value" id="total-records">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">実行中:</span>
+                            <span class="stat-value" id="running-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">合計時間:</span>
+                            <span class="stat-value" id="total-time">0:00:00</span>
+                        </div>
+                    </div>
+                    <div class="category-breakdown" id="category-breakdown">
+                        <!-- Category totals will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline Section -->
+            <div class="timeline-section">
+                <h2>📈 タイムライン</h2>
+                <div class="timeline-controls">
+                    <select id="filter-category" class="filter-select">
+                        <option value="">すべてのカテゴリ</option>
+                        <option value="Work">仕事</option>
+                        <option value="Break">休憩</option>
+                        <option value="Meeting">会議</option>
+                        <option value="Custom">カスタム</option>
+                    </select>
+                    <button class="control-btn refresh-btn" id="refresh-btn">
+                        <span class="icon">🔄</span>
+                        更新
+                    </button>
+                </div>
+                <div class="timeline-container">
+                    <ul id="timeline" class="timeline">
+                        <!-- Timeline entries will be populated here -->
+                        <li class="timeline-empty">
+                            <span class="empty-message">まだアクティビティが記録されていません。カテゴリボタンをクリックして追跡を開始してください！</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="message-container" class="message-container">
+        <!-- Success/error messages will appear here -->
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script>
+        // Busy Time Tracker - Static Version with localStorage
+        class BusyTimeTrackerStatic {
+            constructor() {
+                this.records = [];
+                this.currentRecord = null;
+                this.timerInterval = null;
+                this.refreshInterval = null;
+                this.nextId = 1;
+                this.maxRecords = 200;
+                
+                this.init();
+            }
+
+            // Initialize the application
+            init() {
+                this.loadFromStorage();
+                this.bindEvents();
+                this.updateUI();
+                this.updateCustomButtonState();
+                
+                // Start live timer if there's a running activity
+                if (this.currentRecord) {
+                    this.startLiveTimer();
+                }
+                
+                console.log('Busy Time Tracker (Static) initialized');
+            }
+
+            // Load data from localStorage
+            loadFromStorage() {
+                try {
+                    const stored = localStorage.getItem('busyTimeTracker');
+                    if (stored) {
+                        const data = JSON.parse(stored);
+                        this.records = data.records || [];
+                        this.currentRecord = data.currentRecord || null;
+                        this.nextId = data.nextId || 1;
+                    }
+                } catch (error) {
+                    console.error('Error loading from storage:', error);
+                    this.records = [];
+                    this.currentRecord = null;
+                    this.nextId = 1;
+                }
+            }
+
+            // Save data to localStorage
+            saveToStorage() {
+                try {
+                    const data = {
+                        records: this.records,
+                        currentRecord: this.currentRecord,
+                        nextId: this.nextId,
+                        lastSaved: Date.now()
+                    };
+                    localStorage.setItem('busyTimeTracker', JSON.stringify(data));
+                } catch (error) {
+                    console.error('Error saving to storage:', error);
+                    this.showMessage('ローカルストレージへの保存エラー', 'error');
+                }
+            }
+
+            // Bind all event listeners
+            bindEvents() {
+                // Category buttons
+                document.querySelectorAll('.record-button[data-category]').forEach(button => {
+                    button.addEventListener('click', (e) => this.handleCategoryButton(e));
+                });
+
+                // Custom text input
+                const customText = document.getElementById('custom-text');
+                const startCustomBtn = document.getElementById('start-custom');
+                
+                customText.addEventListener('input', () => this.updateCustomButtonState());
+                customText.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !startCustomBtn.disabled) {
+                        this.handleCustomStart();
+                    }
+                });
+
+                startCustomBtn.addEventListener('click', () => this.handleCustomStart());
+
+                // Control buttons
+                document.getElementById('export-btn').addEventListener('click', () => this.exportData());
+                document.getElementById('clear-btn').addEventListener('click', () => this.clearAllData());
+                document.getElementById('refresh-btn').addEventListener('click', () => this.updateUI());
+
+                // Filter dropdown
+                document.getElementById('filter-category').addEventListener('change', () => this.updateTimeline());
+
+                // Character counter
+                customText.addEventListener('input', () => this.updateCharacterCount());
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+            }
+
+            // Handle keyboard shortcuts
+            handleKeyboardShortcuts(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'e':
+                            e.preventDefault();
+                            this.exportData();
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            this.updateUI();
+                            break;
+                        case 'Delete':
+                            e.preventDefault();
+                            this.clearAllData();
+                            break;
+                    }
+                }
+
+                // Number keys for quick category selection
+                if (e.key >= '1' && e.key <= '4' && !e.ctrlKey && !e.metaKey) {
+                    const buttons = document.querySelectorAll('.record-button[data-category]');
+                    const index = parseInt(e.key) - 1;
+                    if (buttons[index]) {
+                        buttons[index].click();
+                    }
+                }
+            }
+
+            // Update character count display
+            updateCharacterCount() {
+                const customText = document.getElementById('custom-text');
+                const charCount = document.getElementById('char-count');
+                const count = customText.value.length;
+                
+                charCount.textContent = count;
+                charCount.style.color = count > 40 ? '#ff5722' : '#666';
+            }
+
+            // Update custom button state based on input
+            updateCustomButtonState() {
+                const customText = document.getElementById('custom-text');
+                const startCustomBtn = document.getElementById('start-custom');
+                const hasText = customText.value.trim().length > 0;
+                
+                startCustomBtn.disabled = !hasText;
+                startCustomBtn.style.opacity = hasText ? '1' : '0.6';
+            }
+
+            // Handle category button clicks
+            handleCategoryButton(e) {
+                const button = e.currentTarget;
+                const category = button.dataset.category;
+                const isActive = button.classList.contains('active');
+
+                try {
+                    if (isActive && this.currentRecord && this.currentRecord.category === category) {
+                        // Stop current activity
+                        this.stopActivity(this.currentRecord.id);
+                    } else {
+                        // Start new activity
+                        this.startActivity(category);
+                    }
+                } catch (error) {
+                    this.showMessage('リクエスト処理エラー: ' + error.message, 'error');
+                }
+            }
+
+            // Handle custom activity start
+            handleCustomStart() {
+                const customText = document.getElementById('custom-text');
+                const text = customText.value.trim();
+                
+                if (!text) {
+                    this.showMessage('カスタムアクティビティ名を入力してください', 'error');
+                    return;
+                }
+
+                try {
+                    this.startActivity('Custom', text);
+                    customText.value = '';
+                    this.updateCustomButtonState();
+                    this.updateCharacterCount();
+                } catch (error) {
+                    this.showMessage('カスタムアクティビティ開始エラー: ' + error.message, 'error');
+                }
+            }
+
+            // Start an activity
+            startActivity(category, customText = '') {
+                const timestamp = Date.now();
+                
+                // Input validation
+                if (!category) {
+                    throw new Error('カテゴリが必要です');
+                }
+
+                // Custom category validation
+                if (category === 'Custom' && !customText.trim()) {
+                    throw new Error('無効: カスタムアクティビティが空です');
+                }
+
+                let finalCategory = category;
+                if (category === 'Custom' && customText) {
+                    if (customText.length > 50) {
+                        throw new Error('カスタムテキストは50文字以内です');
+                    }
+                    finalCategory = `Custom: ${customText}`;
+                }
+
+                // Check for duplicate running activity
+                if (this.currentRecord && this.currentRecord.category === finalCategory) {
+                    throw new Error('すでに実行中です');
+                }
+
+                // Check record limit
+                if (this.records.length >= this.maxRecords) {
+                    throw new Error('記録の上限を超えました');
+                }
+
+                // Stop any currently running activity
+                if (this.currentRecord) {
+                    this.currentRecord.end = timestamp;
+                    this.currentRecord.duration = this.currentRecord.end - this.currentRecord.start;
+                    this.showMessage(`自動停止: ${this.currentRecord.category}`, 'info');
+                }
+
+                // Create new record
+                const newRecord = {
+                    id: this.nextId++,
+                    category: finalCategory,
+                    start: timestamp,
+                    end: null,
+                    duration: 0
+                };
+
+                this.records.push(newRecord);
+                this.currentRecord = newRecord;
+                this.saveToStorage();
+                this.updateUI();
+                this.startLiveTimer();
+                
+                const displayCategory = category === 'Custom' ? `Custom: ${customText}` : category;
+                this.showMessage(`開始: ${displayCategory}`, 'success');
+
+                console.log(`Operation: START, Category: ${finalCategory}, Timestamp: ${timestamp}, Result: SUCCESS`);
+            }
+
+            // Stop an activity
+            stopActivity(id) {
+                const timestamp = Date.now();
+                
+                // Find record
+                const record = this.records.find(r => r.id === id);
+                if (!record) {
+                    throw new Error('無効: 記録が見つかりません');
+                }
+
+                if (record.end !== null) {
+                    throw new Error('すでに停止されています');
+                }
+
+                // Stop the record
+                record.end = timestamp;
+                record.duration = timestamp - record.start;
+                this.currentRecord = null;
+                
+                this.saveToStorage();
+                this.stopLiveTimer();
+                this.updateUI();
+                
+                this.showMessage('Activity stopped', 'success');
+                console.log(`Operation: STOP, Category: ${record.category}, Timestamp: ${timestamp}, Result: SUCCESS, Duration: ${record.duration}ms`);
+            }
+
+            // Update the entire UI
+            updateUI() {
+                this.updateButtons();
+                this.updateTimeline();
+                this.updateStatus();
+                this.updateSummary();
+            }
+
+            // Update button states
+            updateButtons() {
+                document.querySelectorAll('.record-button[data-category]').forEach(button => {
+                    const category = button.dataset.category;
+                    const isRunning = this.currentRecord && 
+                        (this.currentRecord.category === category || 
+                         (category === 'Custom' && this.currentRecord.category.startsWith('Custom:')));
+                    
+                    button.classList.toggle('active', isRunning);
+                });
+            }
+
+            // Update status display
+            updateStatus() {
+                const statusText = document.getElementById('status-text');
+                const liveTimer = document.getElementById('live-timer');
+
+                if (this.currentRecord) {
+                    statusText.textContent = `実行中: ${this.currentRecord.category}`;
+                    statusText.style.color = '#ff5722';
+                } else {
+                    statusText.textContent = '記録準備完了';
+                    statusText.style.color = '#2e7d32';
+                    liveTimer.textContent = '';
+                }
+            }
+
+            // Start live timer
+            startLiveTimer() {
+                this.stopLiveTimer(); // Clear any existing timer
+                
+                if (!this.currentRecord) return;
+
+                this.timerInterval = setInterval(() => {
+                    if (this.currentRecord) {
+                        const elapsed = Date.now() - this.currentRecord.start;
+                        const liveTimer = document.getElementById('live-timer');
+                        liveTimer.textContent = this.formatDuration(elapsed);
+                        
+                        // Also update the timeline entry for the running activity
+                        this.updateRunningTimelineEntry();
+                    }
+                }, 1000);
+            }
+
+            // Stop live timer
+            stopLiveTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+
+            // Update running timeline entry
+            updateRunningTimelineEntry() {
+                if (!this.currentRecord) return;
+
+                const timelineEntry = document.querySelector(`[data-record-id="${this.currentRecord.id}"] .timeline-duration`);
+                if (timelineEntry) {
+                    const elapsed = Date.now() - this.currentRecord.start;
+                    timelineEntry.textContent = this.formatDuration(elapsed);
+                }
+            }
+
+            // Generate summary data
+            generateSummary() {
+                const categoryTotals = {};
+                let totalDuration = 0;
+
+                this.records.forEach(record => {
+                    if (record.end !== null) {
+                        const duration = record.duration;
+                        const category = record.category.startsWith('Custom:') ? 'Custom' : record.category;
+                        
+                        if (!categoryTotals[category]) {
+                            categoryTotals[category] = 0;
+                        }
+                        categoryTotals[category] += duration;
+                        totalDuration += duration;
+                    }
+                });
+
+                return {
+                    totalRecords: this.records.length,
+                    completedRecords: this.records.filter(r => r.end !== null).length,
+                    runningRecords: this.records.filter(r => r.end === null).length,
+                    totalDuration,
+                    categoryTotals
+                };
+            }
+
+            // Update summary display
+            updateSummary() {
+                const summaryData = this.generateSummary();
+                
+                document.getElementById('total-records').textContent = summaryData.totalRecords;
+                document.getElementById('running-count').textContent = summaryData.runningRecords;
+                document.getElementById('total-time').textContent = this.formatDuration(summaryData.totalDuration);
+
+                // Update category breakdown
+                const breakdown = document.getElementById('category-breakdown');
+                breakdown.innerHTML = '';
+
+                if (summaryData.categoryTotals && Object.keys(summaryData.categoryTotals).length > 0) {
+                    Object.entries(summaryData.categoryTotals).forEach(([category, duration]) => {
+                        const div = document.createElement('div');
+                        div.className = 'category-item';
+                        div.innerHTML = `
+                            <span class="category-name">${category}</span>
+                            <span class="category-time">${this.formatDuration(duration)}</span>
+                        `;
+                        breakdown.appendChild(div);
+                    });
+                } else {
+                    breakdown.innerHTML = '<div class="category-item"><span class="category-name">No completed activities yet</span></div>';
+                }
+            }
+
+            // Update timeline display
+            updateTimeline() {
+                const timeline = document.getElementById('timeline');
+                const filter = document.getElementById('filter-category').value;
+                
+                // Filter records
+                let filteredRecords = this.records;
+                if (filter) {
+                    filteredRecords = this.records.filter(record => {
+                        if (filter === 'Custom') {
+                            return record.category.startsWith('Custom:');
+                        }
+                        return record.category === filter;
+                    });
+                }
+
+                // Sort by start time (newest first)
+                filteredRecords.sort((a, b) => b.start - a.start);
+
+                // Clear timeline
+                timeline.innerHTML = '';
+
+                if (filteredRecords.length === 0) {
+                    timeline.innerHTML = `
+                        <li class="timeline-empty">
+                            <span class="empty-message">アクティビティが見つかりません${filter ? '（選択されたカテゴリ）' : ''}。</span>
+                        </li>
+                    `;
+                    return;
+                }
+
+                // Add timeline entries
+                filteredRecords.forEach(record => {
+                    const li = document.createElement('li');
+                    li.setAttribute('data-record-id', record.id);
+                    
+                    const isRunning = record.end === null;
+                    const duration = isRunning ? Date.now() - record.start : record.duration;
+                    
+                    li.innerHTML = `
+                        <div class="timeline-entry">
+                            <div class="timeline-info">
+                                <div class="timeline-category ${isRunning ? 'running' : ''}">
+                                    ${record.category} ${isRunning ? '(実行中)' : ''}
+                                </div>
+                                <div class="timeline-times">
+                                    開始: ${this.formatTime(record.start)} ${record.end ? '| 終了: ' + this.formatTime(record.end) : ''}
+                                </div>
+                            </div>
+                            <div class="timeline-duration ${isRunning ? 'running' : ''}">
+                                ${this.formatDuration(duration)}
+                            </div>
+                        </div>
+                    `;
+
+                    // Add click handler for running activities (to stop them)
+                    if (isRunning) {
+                        li.style.cursor = 'pointer';
+                        li.title = 'Click to stop this activity';
+                        li.addEventListener('click', () => this.stopActivity(record.id));
+                    }
+
+                    timeline.appendChild(li);
+                });
+            }
+
+            // Export data as JSON
+            exportData() {
+                try {
+                    const exportData = {
+                        exportedAt: Date.now(),
+                        exportedAtFormatted: new Date().toISOString(),
+                        totalRecords: this.records.length,
+                        records: this.records,
+                        summary: this.generateSummary(),
+                        appVersion: 'Static 1.0.0'
+                    };
+
+                    const jsonString = JSON.stringify(exportData, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'time_records.json';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    URL.revokeObjectURL(url);
+                    
+                    this.showMessage('データを正常にエクスポートしました', 'success');
+                    
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showMessage('エクスポート失敗: ' + error.message, 'error');
+                }
+            }
+
+            // Clear all data
+            clearAllData() {
+                if (!confirm('すべての記録データを削除しますか？この操作は元に戻せません。')) {
+                    return;
+                }
+
+                try {
+                    const recordCount = this.records.length;
+                    
+                    this.records = [];
+                    this.currentRecord = null;
+                    this.nextId = 1;
+                    this.stopLiveTimer();
+                    
+                    this.saveToStorage();
+                    this.updateUI();
+                    
+                    this.showMessage(`${recordCount}件の記録をクリアしました`, 'success');
+                    console.log(`Operation: CLEAR, Category: all, Timestamp: ${Date.now()}, Result: SUCCESS, Details: Cleared ${recordCount} records`);
+
+                } catch (error) {
+                    console.error('Clear data error:', error);
+                    this.showMessage('Failed to clear data: ' + error.message, 'error');
+                }
+            }
+
+            // Format timestamp to readable time
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleTimeString();
+            }
+
+            // Format duration in milliseconds to HH:MM:SS
+            formatDuration(ms) {
+                if (ms < 0) ms = 0;
+                
+                const seconds = Math.floor(ms / 1000);
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            // Show status message
+            showMessage(message, type = 'info') {
+                const container = document.getElementById('message-container');
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${type}`;
+                messageEl.textContent = message;
+                
+                container.appendChild(messageEl);
+
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (messageEl.parentNode) {
+                        messageEl.parentNode.removeChild(messageEl);
+                    }
+                }, 5000);
+
+                // Add click to dismiss
+                messageEl.addEventListener('click', () => {
+                    if (messageEl.parentNode) {
+                        messageEl.parentNode.removeChild(messageEl);
+                    }
+                });
+            }
+
+            // Cleanup on page unload
+            destroy() {
+                this.stopLiveTimer();
+                this.saveToStorage();
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.busyTimeTracker = new BusyTimeTrackerStatic();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.busyTimeTracker) {
+                window.busyTimeTracker.destroy();
+            }
+        });
+
+        // Handle visibility change (pause/resume timers when tab is hidden/visible)
+        document.addEventListener('visibilitychange', () => {
+            if (window.busyTimeTracker) {
+                if (document.hidden) {
+                    console.log('Page hidden');
+                } else {
+                    console.log('Page visible, refreshing UI');
+                    window.busyTimeTracker.updateUI();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

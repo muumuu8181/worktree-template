@@ -4,9 +4,12 @@
 
 ### 1. テンプレートをコピー
 ```bash
-# 例: 2025年8月の新プロジェクト用
-mkdir -p published-apps/2025-08/my-new-app
-cp templates/project-report/*.md published-apps/2025-08/my-new-app/
+# 最新の連番を確認
+ls -d published-apps/*/v1-* 2>/dev/null | sort | tail -1
+
+# 例: 2025年8月の新プロジェクト（v1-00001）
+mkdir -p published-apps/2025-08/v1-00001-my-new-app
+cp templates/project-report/*_TEMPLATE.md published-apps/2025-08/v1-00001-my-new-app/
 ```
 
 ### 2. プレースホルダーを置換
@@ -36,13 +39,14 @@ published-apps/
 │       ├── TROUBLESHOOTING_TEMPLATE.md
 │       └── QUICK_START.md
 ├── 2025-07/                      # 2025年7月のプロジェクト
-│   └── calculator-app/
+│   └── calculator-app/           # 旧形式（そのまま）
 │       ├── index.html
 │       ├── TEST_REPORT.md
 │       ├── WORK_LOG.md
 │       └── TROUBLESHOOTING.md
 └── 2025-08/                      # 2025年8月のプロジェクト
-    └── [新しいアプリ]/
+    ├── v1-00001-todo-app/        # 新形式
+    └── v1-00002-weather-app/     # 新形式
 ```
 
 ## 💡 メリット

@@ -1,0 +1,31 @@
+{
+  "version": "v1",
+  "number": "[5桁の連番]",
+  "name": "[プロジェクト名]",
+  "displayName": "[表示用の名前]",
+  "description": "[プロジェクトの簡潔な説明]",
+  "created": "[YYYY-MM-DD]",
+  "type": "[web-app/cli-tool/library/demo]",
+  "status": "[active/completed/archived]",
+  "technologies": {
+    "language": "[JavaScript/Python/etc]",
+    "framework": "[使用したフレームワーク]",
+    "dependencies": "[有/無]"
+  },
+  "urls": {
+    "github": "https://github.com/muumuu8181/published-apps/tree/main/[年月]/[フォルダ名]",
+    "demo": "https://muumuu8181.github.io/published-apps/[年月]/[フォルダ名]/"
+  },
+  "agents": {
+    "total": [使用したエージェントの総数],
+    "breakdown": {
+      "[エージェント名]": [使用回数]
+    }
+  },
+  "metrics": {
+    "developmentTime": "[分]",
+    "filesCreated": [ファイル数],
+    "linesOfCode": [コード行数],
+    "testCoverage": "[パーセント]"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "busy-time-tracker-app",
+  "version": "1.0.0",
+  "description": "A Node.js time tracking app that allows one-click activity recording with real-time timeline view",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Tests TBD\"",
+    "dev": "node app.js"
+  },
+  "keywords": ["time-tracker", "productivity", "nodejs", "express"],
+  "author": "Busy Time Tracker Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
