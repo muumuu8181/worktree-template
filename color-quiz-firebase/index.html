@@ -373,37 +373,7 @@
     <script src="script.js"></script>
     
     <script>
-        // Firebase初期化とイベントリスナー設定
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Firebase初期化
-            const initialized = await window.firebaseConfig.initialize();
-            
-            if (initialized) {
-                document.getElementById('cloud-status').innerHTML = 
-                    '<span class="status-indicator online">🌟 Firebase接続中</span>';
-            } else {
-                document.getElementById('cloud-status').innerHTML = 
-                    '<span class="status-indicator error">⚠️ Firebase接続エラー</span>';
-            }
-            
-            // ログインボタンのイベントリスナー
-            document.getElementById('login-btn').addEventListener('click', async () => {
-                try {
-                    await window.firebaseConfig.signInWithGoogle();
-                } catch (error) {
-                    alert('ログインに失敗しました: ' + error.message);
-                }
-            });
-            
-            // ログアウトボタンのイベントリスナー
-            document.getElementById('logout-btn').addEventListener('click', async () => {
-                try {
-                    await window.firebaseConfig.signOut();
-                } catch (error) {
-                    alert('ログアウトに失敗しました: ' + error.message);
-                }
-            });
-        });
+        // Firebase初期化は script.js の DOMContentLoaded で行う
     </script>
 </body>
 </html>

@@ -21,6 +21,10 @@ class QuizApp {
         // 回答履歴 (エビングハウス曲線用)
         this.answerHistory = SafeStorage.getItem('answerHistory', {});
         
+        // Firebase同期設定
+        this.isCloudSyncEnabled = false;
+        this.currentUserId = null;
+        
         // 習熟度設定（シンプル）
         this.masteryConfig = SafeStorage.getItem('masteryConfig', {
             // 時間減衰設定
@@ -88,12 +92,13 @@ class QuizApp {
         this.majorCategoryTitle = document.getElementById('major-category-title');
         this.minorCategorySummary = document.getElementById('minor-category-summary');
         
-        // 画像管理
+        // 画像管理（無効化）
         this.imageCache = new Map();
         this.supportedExtensions = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'];
         this.animationPatterns = ['correct', 'bounce', 'spin', 'pulse', 'zoom'];
         this.encourageAnimations = ['encourage', 'shake'];
         this.currentAnimationIndex = 0;
+        this.imageSearchEnabled = false; // 画像検索を無効化
         this.skipAnimations = false;
         this.answerHistory = [];
         this.selectedQuestionCount = 5;
@@ -115,7 +120,7 @@ class QuizApp {
         this.periodStart = document.getElementById('period-start');
         this.periodEnd = document.getElementById('period-end');
         this.categories = null;
-        this.initializeImages();
+        // this.initializeImages(); // 画像初期化を無効化
     }
     
     setupEventListeners() {
@@ -856,11 +861,10 @@ class QuizApp {
         this.isAnswered = true;
         const isCorrect = selectedIndex === correctIndex;
         
-        // 履歴に追加
-        this.answerHistory.push(isCorrect);
-        
-        // 習熟度を更新
+        // 習熟度を更新（履歴への追加も含む）
+        console.log('回答記録:', this.currentQuestionIndex, isCorrect);
         this.updateQuestionMastery(this.currentQuestionIndex, isCorrect);
+        console.log('習熟度データ更新後:', Object.keys(this.questionMastery).length, '問記録済み');
         
         this.optionButtons.forEach((btn, index) => {
             btn.disabled = true;
@@ -1016,14 +1020,11 @@ class QuizApp {
     updateQuestionMastery(questionIndex, isCorrect) {
         // 現在の問題を取得
         const currentQuestion = this.questions[questionIndex];
-        const actualQuestionIndex = this.allQuestions.findIndex(q => 
-            q.question === currentQuestion.question && 
-            JSON.stringify(q.options) === JSON.stringify(currentQuestion.options)
-        );
         
-        // ハッシュベースのキーを生成
-        const questionKey = this.getQuestionKey(currentQuestion, actualQuestionIndex >= 0 ? actualQuestionIndex : questionIndex);
+        // 問題キーを直接生成（allQuestionsの検索をスキップ）
+        const questionKey = this.getQuestionKey(currentQuestion, questionIndex);
         const now = Date.now();
+        console.log('問題キー生成:', questionKey, 'インデックス:', questionIndex);
         
         // 回答履歴を記録
         if (!this.answerHistory[questionKey]) {
@@ -1044,10 +1045,22 @@ class QuizApp {
         // 習熟度を計算 (0-10段階)
         const mastery = this.calculateMastery(questionKey);
         this.questionMastery[questionKey] = mastery;
+        console.log('習熟度更新:', questionKey, '→', mastery, '回答履歴数:', this.answerHistory[questionKey].length);
         
         // ローカルストレージに保存
         SafeStorage.setItem('answerHistory', this.answerHistory);
         SafeStorage.setItem('questionMastery', this.questionMastery);
+        
+        // Firebase同期（ログイン時のみ）
+        console.log('Firebase同期チェック:', {
+            isCloudSyncEnabled: this.isCloudSyncEnabled,
+            hasFirebaseConfig: !!window.firebaseConfig,
+            currentUser: window.firebaseConfig?.currentUser?.uid || 'なし'
+        });
+        
+        if (this.isCloudSyncEnabled && window.firebaseConfig) {
+            this.syncMasteryDataToFirebase();
+        }
     }
     
     calculateMastery(questionKey) {
@@ -1222,6 +1235,8 @@ class QuizApp {
     
     // 習熟度分析表示
     showMasteryStats() {
+        console.log('習熟度分析開始 - 記録済み問題数:', Object.keys(this.questionMastery).length);
+        console.log('習熟度データ:', this.questionMastery);
         const masteryLevels = Array(11).fill(0); // 0-10段階
         
         // 習熟度分布を計算
@@ -1869,8 +1884,128 @@ class QuizApp {
             this.historyDots.appendChild(futureDot);
         }
     }
+    
+    // Firebase同期機能
+    enableCloudSync(userId) {
+        this.isCloudSyncEnabled = true;
+        this.currentUserId = userId;
+        console.log('🔄 クラウド同期を有効化:', userId);
+        
+        // Firebaseからデータを読み込み
+        this.loadMasteryDataFromFirebase();
+    }
+    
+    disableCloudSync() {
+        this.isCloudSyncEnabled = false;
+        this.currentUserId = null;
+        console.log('🔄 クラウド同期を無効化');
+    }
+    
+    async syncMasteryDataToFirebase() {
+        console.log('🔄 Firebase同期開始 - userId:', this.currentUserId);
+        if (!this.isCloudSyncEnabled || !window.firebaseConfig) {
+            console.log('❌ Firebase同期条件未満足');
+            return;
+        }
+        
+        try {
+            const masteryData = {
+                answerHistory: this.answerHistory,
+                questionMastery: this.questionMastery,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            console.log('📊 Firebase同期データ:', {
+                userId: this.currentUserId,
+                answerHistoryKeys: Object.keys(this.answerHistory).length,
+                questionMasteryKeys: Object.keys(this.questionMastery).length
+            });
+            
+            await window.firebaseConfig.saveUserData(this.currentUserId, {
+                masteryData: masteryData
+            });
+            
+            console.log('✅ 習熟度データをFirebaseに同期完了');
+        } catch (error) {
+            console.error('❌ 習熟度データ同期エラー:', error);
+        }
+    }
+    
+    async loadMasteryDataFromFirebase() {
+        console.log('📥 Firebaseからデータ読み込み開始 - userId:', this.currentUserId);
+        if (!this.isCloudSyncEnabled || !window.firebaseConfig) {
+            console.log('❌ Firebase読み込み条件未満足');
+            return;
+        }
+        
+        try {
+            const userData = await window.firebaseConfig.getUserData(this.currentUserId);
+            console.log('📥 Firebase取得データ:', userData ? 'データあり' : 'データなし');
+            
+            if (userData && userData.masteryData) {
+                // Firebaseデータとローカルデータをマージ
+                const cloudAnswerHistory = userData.masteryData.answerHistory || {};
+                const cloudQuestionMastery = userData.masteryData.questionMastery || {};
+                
+                this.answerHistory = { ...this.answerHistory, ...cloudAnswerHistory };
+                this.questionMastery = { ...this.questionMastery, ...cloudQuestionMastery };
+                
+                // ローカルストレージも更新
+                SafeStorage.setItem('answerHistory', this.answerHistory);
+                SafeStorage.setItem('questionMastery', this.questionMastery);
+                
+                console.log('✅ Firebaseから習熟度データを読み込み完了:', {
+                    cloudAnswerKeys: Object.keys(cloudAnswerHistory).length,
+                    cloudMasteryKeys: Object.keys(cloudQuestionMastery).length,
+                    mergedAnswerKeys: Object.keys(this.answerHistory).length,
+                    mergedMasteryKeys: Object.keys(this.questionMastery).length
+                });
+            }
+        } catch (error) {
+            console.error('❌ 習熟度データ読み込みエラー:', error);
+        }
+    }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    new QuizApp();
+document.addEventListener('DOMContentLoaded', async () => {
+    // QuizApp を先に初期化
+    window.quizApp = new QuizApp();
+    
+    // Firebase初期化
+    if (window.firebaseConfig) {
+        const initialized = await window.firebaseConfig.initialize();
+        
+        const cloudStatus = document.getElementById('cloud-status');
+        if (cloudStatus) {
+            if (initialized) {
+                cloudStatus.innerHTML = '<span class="status-indicator online">🌟 Firebase接続中</span>';
+            } else {
+                cloudStatus.innerHTML = '<span class="status-indicator error">⚠️ Firebase接続エラー</span>';
+            }
+        }
+        
+        // ログインボタンのイベントリスナー
+        const loginBtn = document.getElementById('login-btn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', async () => {
+                try {
+                    await window.firebaseConfig.signInWithGoogle();
+                } catch (error) {
+                    alert('ログインに失敗しました: ' + error.message);
+                }
+            });
+        }
+        
+        // ログアウトボタンのイベントリスナー
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await window.firebaseConfig.signOut();
+                } catch (error) {
+                    alert('ログアウトに失敗しました: ' + error.message);
+                }
+            });
+        }
+    }
 });
