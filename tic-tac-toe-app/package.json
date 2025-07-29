@@ -1,0 +1,33 @@
+{
+  "name": "tic-tac-toe-app",
+  "version": "1.0.0",
+  "description": "Node.js Express Tic-Tac-Toe Game with PVP/PVA support",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "tic-tac-toe",
+    "game",
+    "express",
+    "nodejs",
+    "pvp",
+    "pva",
+    "ai"
+  ],
+  "author": "AI Auto Generator",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "path": "^0.12.7",
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
