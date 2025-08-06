@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ゲームエフェクトショーケース</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar h2 {
+            color: #fff;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .effect-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .effect-btn:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
+        }
+
+        .effect-btn.fire { background: linear-gradient(45deg, #ff6b6b, #ff4757); }
+        .effect-btn.ice { background: linear-gradient(45deg, #74b9ff, #0984e3); }
+        .effect-btn.thunder { background: linear-gradient(45deg, #ffeaa7, #fdcb6e); }
+        .effect-btn.dark { background: linear-gradient(45deg, #2d3436, #636e72); }
+        .effect-btn.heal { background: linear-gradient(45deg, #55efc4, #00b894); }
+        .effect-btn.poison { background: linear-gradient(45deg, #a29bfe, #6c5ce7); }
+
+        .display-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: radial-gradient(circle at center, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.8) 100%);
+        }
+
+        .effect-container {
+            width: 400px;
+            height: 400px;
+            position: relative;
+        }
+
+        /* 爆発エフェクト */
+        @keyframes explosion {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(3) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .explosion {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, #ff6b6b, #ff4757, transparent);
+            border-radius: 50%;
+            animation: explosion 1s ease-out;
+        }
+
+        /* 火炎エフェクト */
+        @keyframes fire {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            25% {
+                transform: translateY(-20px) scale(1.1) rotate(5deg);
+            }
+            50% {
+                transform: translateY(-40px) scale(0.9) rotate(-5deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-80px) scale(0.5) rotate(10deg);
+                opacity: 0;
+            }
+        }
+
+        .fire-particle {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background: linear-gradient(to top, #ff6b6b, #feca57, transparent);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: fire 1.5s ease-out infinite;
+        }
+
+        /* 氷エフェクト */
+        @keyframes freeze {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(180deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1) rotate(360deg);
+                opacity: 0.7;
+            }
+        }
+
+        .ice-crystal {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, transparent 30%, #74b9ff 50%, transparent 70%);
+            animation: freeze 2s ease-in-out;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+
+        /* 雷エフェクト */
+        @keyframes lightning {
+            0%, 95% {
+                opacity: 0;
+            }
+            96%, 100% {
+                opacity: 1;
+            }
+        }
+
+        .lightning-bolt {
+            position: absolute;
+            width: 200px;
+            height: 300px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(to bottom, #ffeaa7, #fdcb6e, #fff);
+            clip-path: polygon(30% 0%, 40% 20%, 25% 20%, 45% 50%, 30% 50%, 50% 80%, 35% 80%, 60% 100%, 20% 60%, 35% 60%, 15% 30%, 30% 30%, 10% 0%);
+            animation: lightning 0.5s ease-in-out;
+            filter: drop-shadow(0 0 20px #fdcb6e);
+        }
+
+        /* 回復エフェクト */
+        @keyframes heal {
+            0% {
+                transform: translateY(0) scale(0);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .heal-particle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #55efc4, transparent);
+            border-radius: 50%;
+            animation: heal 2s ease-out infinite;
+        }
+
+        /* 毒エフェクト */
+        @keyframes poison {
+            0% {
+                transform: scale(1) rotate(0deg);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.3) rotate(180deg);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(0.8) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .poison-bubble {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #a29bfe, #6c5ce7);
+            border-radius: 50%;
+            animation: poison 2s ease-in-out infinite;
+        }
+
+        /* 闇エフェクト */
+        @keyframes darkness {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.8);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 50px 30px rgba(0, 0, 0, 0.8);
+                transform: scale(1.1);
+            }
+            100% {
+                box-shadow: 0 0 100px 60px rgba(0, 0, 0, 0);
+                transform: scale(1.2);
+            }
+        }
+
+        .darkness-wave {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(0, 0, 0, 0.9), transparent);
+            border-radius: 50%;
+            animation: darkness 1.5s ease-out;
+        }
+
+        /* スラッシュエフェクト */
+        @keyframes slash {
+            0% {
+                width: 0;
+                opacity: 1;
+            }
+            50% {
+                width: 300px;
+                opacity: 1;
+            }
+            100% {
+                width: 300px;
+                opacity: 0;
+            }
+        }
+
+        .slash-effect {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(to right, transparent, #fff, transparent);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            animation: slash 0.5s ease-out;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        /* シールドエフェクト */
+        @keyframes shield {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(180deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1) rotate(360deg);
+                opacity: 0.3;
+            }
+        }
+
+        .shield-barrier {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid #3498db;
+            border-radius: 50%;
+            background: radial-gradient(circle, transparent 30%, rgba(52, 152, 219, 0.3));
+            animation: shield 1s ease-out;
+            box-shadow: 0 0 30px #3498db, inset 0 0 30px #3498db;
+        }
+
+        /* ポータルエフェクト */
+        @keyframes portal {
+            0% {
+                transform: rotate(0deg) scale(0);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: rotate(360deg) scale(1);
+                opacity: 0.8;
+            }
+        }
+
+        .portal-vortex {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: conic-gradient(from 0deg, #e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6, #e74c3c);
+            border-radius: 50%;
+            animation: portal 2s ease-in-out;
+            filter: blur(2px);
+        }
+
+        /* 星エフェクト */
+        @keyframes star {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .star-burst {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffd700;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            animation: star 1s ease-out;
+            filter: drop-shadow(0 0 20px #ffd700);
+        }
+
+        /* 波動エフェクト */
+        @keyframes wave {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+                border-width: 20px;
+            }
+            100% {
+                transform: scale(3);
+                opacity: 0;
+                border-width: 1px;
+            }
+        }
+
+        .energy-wave {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 20px solid #00d2ff;
+            border-radius: 50%;
+            animation: wave 1s ease-out;
+        }
+
+        /* 竜巻エフェクト */
+        @keyframes tornado {
+            0% {
+                transform: rotate(0deg) translateY(0);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: rotate(720deg) translateY(-200px);
+                opacity: 0;
+            }
+        }
+
+        .tornado-spiral {
+            position: absolute;
+            width: 100px;
+            height: 200px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(to top, #95a5a6, transparent);
+            clip-path: polygon(50% 0%, 60% 100%, 40% 100%);
+            animation: tornado 2s ease-in-out;
+        }
+
+        /* レーザーエフェクト */
+        @keyframes laser {
+            0% {
+                height: 0;
+                opacity: 0;
+            }
+            50% {
+                height: 400px;
+                opacity: 1;
+            }
+            100% {
+                height: 400px;
+                opacity: 0;
+            }
+        }
+
+        .laser-beam {
+            position: absolute;
+            width: 5px;
+            background: linear-gradient(to bottom, transparent, #e74c3c, #e74c3c, transparent);
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: laser 0.5s ease-out;
+            box-shadow: 0 0 20px #e74c3c, 0 0 40px #e74c3c;
+        }
+
+        /* メテオエフェクト */
+        @keyframes meteor {
+            0% {
+                transform: translate(-200px, -200px) rotate(45deg);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(200px, 200px) rotate(45deg);
+                opacity: 0;
+            }
+        }
+
+        .meteor-strike {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            top: 50%;
+            left: 50%;
+            background: radial-gradient(circle, #ff6b6b, #ff4757);
+            border-radius: 50%;
+            animation: meteor 1s ease-in;
+            box-shadow: 0 0 30px #ff6b6b, 0 0 60px #ff4757;
+        }
+
+        .meteor-strike::after {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 3px;
+            background: linear-gradient(to left, transparent, #ff6b6b);
+            top: 50%;
+            right: 100%;
+            transform: translateY(-50%);
+        }
+
+        /* 虹エフェクト */
+        @keyframes rainbow {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2) rotate(180deg);
+                opacity: 0;
+            }
+        }
+
+        .rainbow-burst {
+            position: absolute;
+            width: 200px;
+            height: 100px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(to right, #e74c3c, #f39c12, #f1c40f, #2ecc71, #3498db, #9b59b6);
+            border-radius: 100px 100px 0 0;
+            animation: rainbow 2s ease-out;
+            filter: blur(2px);
+        }
+
+        /* テレポートエフェクト */
+        @keyframes teleport {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0;
+                transform: scale(0);
+            }
+        }
+
+        .teleport-flash {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, #fff, transparent);
+            border-radius: 50%;
+            animation: teleport 1s ease-in-out;
+        }
+
+        /* 地震エフェクト */
+        @keyframes earthquake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            10%, 30%, 50%, 70%, 90% {
+                transform: translateX(-10px);
+            }
+            20%, 40%, 60%, 80% {
+                transform: translateX(10px);
+            }
+        }
+
+        .earthquake-shake {
+            animation: earthquake 0.5s ease-in-out;
+        }
+
+        /* パーティクル共通 */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 敵キャラクター */
+        .enemy {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .enemy-body {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #8b008b, #4b0082);
+            border-radius: 50%;
+            border: 3px solid #2c003e;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .enemy-eye {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            top: 35%;
+        }
+
+        .enemy-eye::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #000;
+            border-radius: 50%;
+            top: 5px;
+            left: 5px;
+        }
+
+        .enemy-eye-left {
+            left: 25%;
+        }
+
+        .enemy-eye-right {
+            right: 25%;
+        }
+
+        .hp-bar {
+            position: absolute;
+            width: 150px;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #fff;
+            border-radius: 5px;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .hp-fill {
+            height: 100%;
+            background: linear-gradient(to right, #ff0000, #ff6b6b);
+            border-radius: 3px;
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        /* ダメージ数値エフェクト */
+        @keyframes damageFloat {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+            20% {
+                transform: translateY(-20px) scale(1.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-80px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .damage-number {
+            position: absolute;
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffff00;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px #ff0000;
+            animation: damageFloat 1s ease-out;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .damage-critical {
+            color: #ff0000;
+            font-size: 48px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px #ffff00;
+        }
+
+        /* ヒットマークエフェクト */
+        @keyframes hitMark {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(2) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .hit-mark {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9), transparent);
+            animation: hitMark 0.5s ease-out;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+        .hit-mark::before,
+        .hit-mark::after {
+            content: '';
+            position: absolute;
+            background: #fff;
+        }
+
+        .hit-mark::before {
+            width: 100%;
+            height: 4px;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .hit-mark::after {
+            width: 4px;
+            height: 100%;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* 敵の被弾エフェクト */
+        @keyframes enemyHit {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            25% {
+                transform: translate(-52%, -50%) scale(0.95);
+            }
+            75% {
+                transform: translate(-48%, -50%) scale(0.95);
+            }
+        }
+
+        .enemy-hit {
+            animation: enemyHit 0.3s ease-out;
+        }
+
+        /* コンボカウンター */
+        .combo-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        .combo-number {
+            font-size: 48px;
+            color: #ffd700;
+            display: block;
+        }
+
+        /* スパークエフェクト */
+        @keyframes spark {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+
+        .spark-effect {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ffff00, #ff6600, transparent);
+            border-radius: 50%;
+            animation: spark 0.3s ease-out;
+            pointer-events: none;
+            z-index: 95;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>エフェクト一覧</h2>
+        <button class="effect-btn fire" data-effect="explosion">爆発</button>
+        <button class="effect-btn fire" data-effect="fire">炎</button>
+        <button class="effect-btn ice" data-effect="ice">氷結</button>
+        <button class="effect-btn thunder" data-effect="lightning">稲妻</button>
+        <button class="effect-btn heal" data-effect="heal">回復</button>
+        <button class="effect-btn poison" data-effect="poison">毒</button>
+        <button class="effect-btn dark" data-effect="darkness">闇</button>
+        <button class="effect-btn" data-effect="slash">斬撃</button>
+        <button class="effect-btn ice" data-effect="shield">シールド</button>
+        <button class="effect-btn" data-effect="portal">ポータル</button>
+        <button class="effect-btn" data-effect="star">スター</button>
+        <button class="effect-btn" data-effect="wave">衝撃波</button>
+        <button class="effect-btn" data-effect="tornado">竜巻</button>
+        <button class="effect-btn fire" data-effect="laser">レーザー</button>
+        <button class="effect-btn fire" data-effect="meteor">メテオ</button>
+        <button class="effect-btn" data-effect="rainbow">虹</button>
+        <button class="effect-btn" data-effect="teleport">テレポート</button>
+        <button class="effect-btn" data-effect="earthquake">地震</button>
+        <button class="effect-btn" data-effect="multiExplosion">連続爆発</button>
+        <button class="effect-btn heal" data-effect="aura">オーラ</button>
+    </div>
+
+    <div class="display-area">
+        <!-- コンボカウンター -->
+        <div class="combo-counter" id="comboCounter" style="display: none;">
+            COMBO
+            <span class="combo-number" id="comboNumber">0</span>
+        </div>
+        
+        <div class="effect-container" id="effectContainer">
+            <!-- 敵キャラクター -->
+            <div class="enemy" id="enemy">
+                <div class="enemy-body"></div>
+                <div class="enemy-eye enemy-eye-left"></div>
+                <div class="enemy-eye enemy-eye-right"></div>
+                <div class="hp-bar">
+                    <div class="hp-fill" id="enemyHp"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const effectContainer = document.getElementById('effectContainer');
+        const buttons = document.querySelectorAll('.effect-btn');
+        const enemy = document.getElementById('enemy');
+        const enemyHp = document.getElementById('enemyHp');
+        const comboCounter = document.getElementById('comboCounter');
+        const comboNumber = document.getElementById('comboNumber');
+        
+        let currentHp = 100;
+        let combo = 0;
+        let comboTimer = null;
+
+        // ダメージ数値を表示
+        function showDamage(damage, isCritical = false) {
+            const damageEl = document.createElement('div');
+            damageEl.className = `damage-number ${isCritical ? 'damage-critical' : ''}`;
+            damageEl.textContent = damage;
+            damageEl.style.left = `${180 + Math.random() * 40}px`;
+            damageEl.style.top = `${150 + Math.random() * 40}px`;
+            effectContainer.appendChild(damageEl);
+            setTimeout(() => damageEl.remove(), 1000);
+        }
+
+        // ヒットマークを表示
+        function showHitMark() {
+            const hitMark = document.createElement('div');
+            hitMark.className = 'hit-mark';
+            hitMark.style.left = `${180 + Math.random() * 40}px`;
+            hitMark.style.top = `${180 + Math.random() * 40}px`;
+            effectContainer.appendChild(hitMark);
+            setTimeout(() => hitMark.remove(), 500);
+        }
+
+        // スパークエフェクトを表示
+        function showSpark() {
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const spark = document.createElement('div');
+                    spark.className = 'spark-effect';
+                    spark.style.left = `${180 + Math.random() * 40}px`;
+                    spark.style.top = `${180 + Math.random() * 40}px`;
+                    effectContainer.appendChild(spark);
+                    setTimeout(() => spark.remove(), 300);
+                }, i * 50);
+            }
+        }
+
+        // 敵にダメージを与える
+        function damageEnemy(damage, attackType) {
+            // HPを減らす
+            currentHp = Math.max(0, currentHp - damage);
+            enemyHp.style.width = currentHp + '%';
+            
+            // 敵を揺らす
+            enemy.classList.add('enemy-hit');
+            setTimeout(() => enemy.classList.remove('enemy-hit'), 300);
+            
+            // ダメージ表示
+            const isCritical = Math.random() > 0.7;
+            showDamage(isCritical ? damage * 2 : damage, isCritical);
+            
+            // ヒットエフェクト
+            showHitMark();
+            if (attackType === 'heavy') {
+                showSpark();
+            }
+            
+            // コンボ更新
+            updateCombo();
+            
+            // HP回復（デモ用）
+            if (currentHp === 0) {
+                setTimeout(() => {
+                    currentHp = 100;
+                    enemyHp.style.width = '100%';
+                }, 2000);
+            }
+        }
+
+        // コンボシステム
+        function updateCombo() {
+            combo++;
+            comboNumber.textContent = combo;
+            comboCounter.style.display = 'block';
+            
+            // コンボタイマーリセット
+            clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                combo = 0;
+                comboCounter.style.display = 'none';
+            }, 3000);
+        }
+
+        const effects = {
+            explosion: () => {
+                clearEffects();
+                const explosion = document.createElement('div');
+                explosion.className = 'explosion';
+                effectContainer.appendChild(explosion);
+                setTimeout(() => explosion.remove(), 1000);
+                damageEnemy(25, 'heavy');
+            },
+
+            fire: () => {
+                clearEffects();
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        const particle = document.createElement('div');
+                        particle.className = 'fire-particle';
+                        particle.style.left = `${150 + Math.random() * 100}px`;
+                        particle.style.top = `${200 + Math.random() * 50}px`;
+                        particle.style.animationDelay = `${Math.random() * 0.5}s`;
+                        effectContainer.appendChild(particle);
+                        setTimeout(() => particle.remove(), 1500);
+                    }, i * 100);
+                }
+            },
+
+            ice: () => {
+                clearEffects();
+                const crystal = document.createElement('div');
+                crystal.className = 'ice-crystal';
+                effectContainer.appendChild(crystal);
+                setTimeout(() => crystal.remove(), 2000);
+            },
+
+            lightning: () => {
+                clearEffects();
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const bolt = document.createElement('div');
+                        bolt.className = 'lightning-bolt';
+                        bolt.style.transform = `translate(-50%, -50%) rotate(${Math.random() * 30 - 15}deg)`;
+                        effectContainer.appendChild(bolt);
+                        damageEnemy(15, 'heavy');
+                        setTimeout(() => bolt.remove(), 500);
+                    }, i * 200);
+                }
+            },
+
+            heal: () => {
+                clearEffects();
+                for (let i = 0; i < 15; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'heal-particle';
+                    particle.style.left = `${150 + Math.random() * 100}px`;
+                    particle.style.top = `${250 + Math.random() * 50}px`;
+                    particle.style.animationDelay = `${Math.random() * 2}s`;
+                    effectContainer.appendChild(particle);
+                    setTimeout(() => particle.remove(), 2000);
+                }
+            },
+
+            poison: () => {
+                clearEffects();
+                for (let i = 0; i < 8; i++) {
+                    const bubble = document.createElement('div');
+                    bubble.className = 'poison-bubble';
+                    bubble.style.left = `${150 + Math.random() * 100}px`;
+                    bubble.style.top = `${150 + Math.random() * 100}px`;
+                    bubble.style.animationDelay = `${Math.random() * 2}s`;
+                    effectContainer.appendChild(bubble);
+                    setTimeout(() => bubble.remove(), 2000);
+                }
+            },
+
+            darkness: () => {
+                clearEffects();
+                const wave = document.createElement('div');
+                wave.className = 'darkness-wave';
+                effectContainer.appendChild(wave);
+                setTimeout(() => wave.remove(), 1500);
+            },
+
+            slash: () => {
+                clearEffects();
+                // 3連撃
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const slash = document.createElement('div');
+                        slash.className = 'slash-effect';
+                        slash.style.transform = `translate(-50%, -50%) rotate(${-45 + i * 30}deg)`;
+                        effectContainer.appendChild(slash);
+                        
+                        // 各斬撃でダメージとヒットエフェクト
+                        damageEnemy(10, 'light');
+                        
+                        setTimeout(() => slash.remove(), 500);
+                    }, i * 150);
+                }
+            },
+
+            shield: () => {
+                clearEffects();
+                const shield = document.createElement('div');
+                shield.className = 'shield-barrier';
+                effectContainer.appendChild(shield);
+                setTimeout(() => shield.remove(), 1000);
+            },
+
+            portal: () => {
+                clearEffects();
+                const portal = document.createElement('div');
+                portal.className = 'portal-vortex';
+                effectContainer.appendChild(portal);
+                setTimeout(() => portal.remove(), 2000);
+            },
+
+            star: () => {
+                clearEffects();
+                const star = document.createElement('div');
+                star.className = 'star-burst';
+                effectContainer.appendChild(star);
+                setTimeout(() => star.remove(), 1000);
+            },
+
+            wave: () => {
+                clearEffects();
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const wave = document.createElement('div');
+                        wave.className = 'energy-wave';
+                        effectContainer.appendChild(wave);
+                        setTimeout(() => wave.remove(), 1000);
+                    }, i * 200);
+                }
+            },
+
+            tornado: () => {
+                clearEffects();
+                const tornado = document.createElement('div');
+                tornado.className = 'tornado-spiral';
+                effectContainer.appendChild(tornado);
+                setTimeout(() => tornado.remove(), 2000);
+            },
+
+            laser: () => {
+                clearEffects();
+                const laser = document.createElement('div');
+                laser.className = 'laser-beam';
+                effectContainer.appendChild(laser);
+                setTimeout(() => laser.remove(), 500);
+            },
+
+            meteor: () => {
+                clearEffects();
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        const meteor = document.createElement('div');
+                        meteor.className = 'meteor-strike';
+                        meteor.style.left = `${100 + Math.random() * 200}px`;
+                        meteor.style.top = `${100 + Math.random() * 200}px`;
+                        effectContainer.appendChild(meteor);
+                        damageEnemy(20, 'heavy');
+                        setTimeout(() => meteor.remove(), 1000);
+                    }, i * 200);
+                }
+            },
+
+            rainbow: () => {
+                clearEffects();
+                const rainbow = document.createElement('div');
+                rainbow.className = 'rainbow-burst';
+                effectContainer.appendChild(rainbow);
+                setTimeout(() => rainbow.remove(), 2000);
+            },
+
+            teleport: () => {
+                clearEffects();
+                const teleport = document.createElement('div');
+                teleport.className = 'teleport-flash';
+                effectContainer.appendChild(teleport);
+                setTimeout(() => teleport.remove(), 1000);
+            },
+
+            earthquake: () => {
+                clearEffects();
+                effectContainer.classList.add('earthquake-shake');
+                document.body.classList.add('earthquake-shake');
+                setTimeout(() => {
+                    effectContainer.classList.remove('earthquake-shake');
+                    document.body.classList.remove('earthquake-shake');
+                }, 500);
+            },
+
+            multiExplosion: () => {
+                clearEffects();
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        const explosion = document.createElement('div');
+                        explosion.className = 'explosion';
+                        explosion.style.left = `${Math.random() * 300}px`;
+                        explosion.style.top = `${Math.random() * 300}px`;
+                        explosion.style.transform = 'translate(-50%, -50%)';
+                        effectContainer.appendChild(explosion);
+                        setTimeout(() => explosion.remove(), 1000);
+                    }, i * 200);
+                }
+            },
+
+            aura: () => {
+                clearEffects();
+                for (let i = 0; i < 3; i++) {
+                    const aura = document.createElement('div');
+                    aura.style.position = 'absolute';
+                    aura.style.width = `${200 + i * 50}px`;
+                    aura.style.height = `${200 + i * 50}px`;
+                    aura.style.top = '50%';
+                    aura.style.left = '50%';
+                    aura.style.transform = 'translate(-50%, -50%)';
+                    aura.style.border = '3px solid rgba(255, 215, 0, 0.5)';
+                    aura.style.borderRadius = '50%';
+                    aura.style.animation = `wave ${1 + i * 0.3}s ease-out`;
+                    effectContainer.appendChild(aura);
+                    setTimeout(() => aura.remove(), 1300 + i * 300);
+                }
+            }
+        };
+
+        function clearEffects() {
+            // 敵とHP関連以外の要素を削除
+            const elements = effectContainer.children;
+            const toRemove = [];
+            for (let el of elements) {
+                if (!el.classList.contains('enemy')) {
+                    toRemove.push(el);
+                }
+            }
+            toRemove.forEach(el => el.remove());
+        }
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const effectName = button.dataset.effect;
+                if (effects[effectName]) {
+                    effects[effectName]();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
