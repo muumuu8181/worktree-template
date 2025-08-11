@@ -249,7 +249,18 @@ function saveKey() {
 }
 
 function init() {
-  $('#apiKey').value = state.apiKey;
+  // If optional config is present and host is allowed, prefill API key.
+  try {
+    const cfg = window.APP_CONFIG;
+    const hostOk = Array.isArray(cfg?.allowedHosts) ? cfg.allowedHosts.includes(location.host) : false;
+    if (cfg?.apiKey && hostOk) {
+      state.apiKey = cfg.apiKey;
+      localStorage.setItem('yt_api_key', cfg.apiKey);
+      setNotice('構成ファイルからAPI Keyを読み込みました。');
+    }
+  } catch {}
+
+  $('#apiKey').value = localStorage.getItem('yt_api_key') || state.apiKey || '';
   $('#saveKeyBtn').addEventListener('click', saveKey);
   $('#startBtn').addEventListener('click', start);
   $('#stopBtn').addEventListener('click', stop);
