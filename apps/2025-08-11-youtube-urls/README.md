@@ -1,4 +1,4 @@
-YouTube URL Extractor v0.1
+YouTube URL Extractor v0.101
 
 概要
 - 指定した検索条件（キーワード、期間、チャンネル名、曖昧検索）に基づき、YouTube動画のURL一覧を抽出します。
@@ -20,6 +20,10 @@ YouTube URL Extractor v0.1
 - 長いリストでも操作しやすい固定ヘッダとスクロール領域を分離。
 
 開発メモ
-- 静的構成：index.html, src/app.js, src/styles.css のみ。
+- 静的構成：index.html, src/app.js, src/styles.css（任意で src/config.js）。
 - API: search.list, channels.list（channelId解決用）
 - 制限: 1分タイムアウト、1リクエスト50件、ページネーションは nextPageToken で継続し、タイムアウト/上限で停止。
+
+バックエンド（任意・推奨）
+- Firebase Functions の /yt/search 経由でYouTube APIを呼ぶ構成を追加（apps/2025-08-11-youtube-urls/backend）。
+- フロントは src/config.js の proxyBase を指定するとサーバ経由に切替。

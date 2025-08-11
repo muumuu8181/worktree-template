@@ -1,7 +1,7 @@
 {
   "template": {
     "base-path": "C:\\Users\\user\\Desktop\\work\\90_cc\\templates\\project-template-clone",
-    "version": "0.1",
+    "version": "0.3",
     "default-settings": {
       "deploy-target": "GitHub Pages"
     }
