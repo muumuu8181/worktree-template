@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube URL Extractor v0.1</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>YouTube URL Extractor v0.1</h1>
+      <p class="subtitle">指定条件で動画URLを抽出（APIのみ・規約準拠）</p>
+    </header>
+
+    <main class="container">
+      <section class="panel panel-controls">
+        <h2>Panel 1: 検索条件</h2>
+        <div class="field">
+          <label for="apiKey">API Key</label>
+          <div class="row">
+            <input id="apiKey" type="password" placeholder="YOUR_YOUTUBE_DATA_API_KEY" />
+            <button id="saveKeyBtn" class="secondary">Save</button>
+          </div>
+          <small>ローカル保存（ブラウザのLocalStorage）。公開環境でのキー露出リスクに注意。</small>
+        </div>
+
+        <div class="field">
+          <label for="keywords">キーワード</label>
+          <input id="keywords" type="text" placeholder="例: AI 自動化" />
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="startDate">開始日</label>
+            <input id="startDate" type="date" />
+          </div>
+          <div class="field">
+            <label for="endDate">終了日</label>
+            <input id="endDate" type="date" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="channelName">チャンネル名（任意）</label>
+          <input id="channelName" type="text" placeholder="例: OpenAI" />
+          <small>チャンネル名からIDを解決して検索します（正確な正式名が必要な場合があります）。</small>
+        </div>
+
+        <div class="row">
+          <label class="checkbox">
+            <input id="fuzzy" type="checkbox" checked /> 曖昧検索を有効化（厳密一致を避ける）
+          </label>
+          <label class="checkbox">
+            <input id="shorts" type="checkbox" /> Shorts を除外
+          </label>
+        </div>
+
+        <div class="row actions">
+          <button id="startBtn" class="primary">Start</button>
+          <button id="stopBtn" class="danger" disabled>Stop</button>
+        </div>
+        <div id="notice" class="notice"></div>
+      </section>
+
+      
+      <section class="panel panel-results">
+        <div class="results-header">
+          <h2>Panel 2: 結果</h2>
+          <div class="progress">
+            <div id="progressBar" class="bar" style="width:0%"></div>
+          </div>
+          <div class="stats">
+            <span id="count">0</span> 件
+            <span id="elapsed">0.0s</span>
+          </div>
+          <div class="results-actions">
+            <button id="copyBtn" class="secondary" disabled>Copy URLs</button>
+            <button id="clearBtn" class="secondary">Clear</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <input id="filterInput" type="text" placeholder="フィルタ（タイトル/URL部分一致）" />
+          <label class="checkbox small"><input id="uniqueOnly" type="checkbox" checked /> 重複排除</label>
+        </div>
+
+        <div class="list-header">
+          <label class="checkbox small"><input id="selectAll" type="checkbox" /> 全選択</label>
+        </div>
+
+        <div id="results" class="results-list" role="list"></div>
+
+        <div class="clipboard">
+          <textarea id="clipboard" rows="6" readonly placeholder="ここにURL一覧が表示されます..."></textarea>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <small>v0.1 | データはYouTube Data API v3から取得。処理は最大60秒で早期停止します。</small>
+    </footer>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+  </html>

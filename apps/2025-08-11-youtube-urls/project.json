@@ -1,0 +1,31 @@
+{
+  "template": {
+    "base-path": "C:\\Users\\user\\Desktop\\work\\90_cc\\templates\\project-template-clone",
+    "version": "0.1",
+    "default-settings": {
+      "deploy-target": "GitHub Pages"
+    }
+  },
+  "daily": {
+    "date": "2025-08-11",
+    "work-folder": "C:\\Users\\user\\Desktop\\work\\90_cc\\20250811"
+  },
+  "app": {
+    "name": "2025-08-11-youtube-url-extractor",
+    "description": "YouTubeで指定条件に基づいてURL一覧を抽出するアプリ",
+    "data-name": "youtube-urls",
+    "goals": [
+      "パネル2のUIを完全リデザインし、操作性を向上",
+      "GitHub Pagesでの公開をv0.1として完了",
+      "templateルールを厳守する",
+      "携帯からの利用を想定して、縦長に"
+    ],
+    "specific-requirements": {
+      "input": "検索条件（キーワード、期間、チャンネル名など、曖昧検索も対応）",
+      "output": "htmlページ上でのurl一覧、コピペ可能",
+      "other": [
+        "結果が多すぎるような場合は処理を早めに中断(1分目安)"
+      ]
+    }
+  }
+}
