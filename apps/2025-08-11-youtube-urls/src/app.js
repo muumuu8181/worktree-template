@@ -172,10 +172,6 @@ async function start() {
   resetResults();
   setNotice('検索を開始しました…');
   const apiKey = $('#apiKey').value.trim();
-  if (!apiKey) {
-    setNotice('API Key を入力してください。', 'error');
-    return;
-  }
   const q = $('#keywords').value.trim();
   const publishedAfter = isoDate($('#startDate').value, false);
   const publishedBefore = isoDate($('#endDate').value, true);
@@ -193,36 +189,70 @@ async function start() {
   const signal = aborter.signal;
 
   try {
-    let channelId;
-    if (channelName) {
-      setNotice('チャンネルIDを解決中…');
-      channelId = await resolveChannelId(apiKey, channelName);
-      if (!channelId) {
-        setNotice('チャンネルが見つかりませんでした。キーワードのみで検索します。', 'warn');
-      }
-    }
-    setNotice('動画を取得中…');
-    await fetchVideos({
-      apiKey,
-      q,
-      channelId,
-      publishedAfter,
-      publishedBefore,
-      fuzzy,
-      excludeShorts,
-      signal,
-      onPage: (items) => {
-        for (const it of items) {
-          if (!state.idSet.has(it.id)) {
-            state.idSet.add(it.id);
-            state.urls.push(it);
-          }
+    const cfg = window.APP_CONFIG || {};
+    if (cfg.proxyBase) {
+      const url = new URL((cfg.proxyBase.replace(/\/$/, '')) + '/yt/search');
+      if (q) url.searchParams.set('q', q);
+      if (channelName) url.searchParams.set('channelName', channelName);
+      if (publishedAfter) url.searchParams.set('publishedAfter', $('#startDate').value);
+      if (publishedBefore) url.searchParams.set('publishedBefore', $('#endDate').value);
+      url.searchParams.set('fuzzy', String(!!fuzzy));
+      url.searchParams.set('excludeShorts', String(!!excludeShorts));
+      setNotice('サーバ経由で動画を取得中…');
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 60_000);
+      const resp = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(tm);
+      if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+      const data = await resp.json();
+      const items = data.items || [];
+      for (const it of items) {
+        if (!state.idSet.has(it.id)) {
+          state.idSet.add(it.id);
+          state.urls.push(it);
         }
-        renderList();
-        updateClipboard();
-      },
-    });
-    setNotice('完了');
+      }
+      setProgress(1);
+      renderList();
+      updateClipboard();
+      setStats();
+      setNotice('完了（サーバ）');
+    } else {
+      if (!apiKey) {
+        setNotice('API Key を入力してください。', 'error');
+        return;
+      }
+      let channelId;
+      if (channelName) {
+        setNotice('チャンネルIDを解決中…');
+        channelId = await resolveChannelId(apiKey, channelName);
+        if (!channelId) {
+          setNotice('チャンネルが見つかりませんでした。キーワードのみで検索します。', 'warn');
+        }
+      }
+      setNotice('動画を取得中…');
+      await fetchVideos({
+        apiKey,
+        q,
+        channelId,
+        publishedAfter,
+        publishedBefore,
+        fuzzy,
+        excludeShorts,
+        signal,
+        onPage: (items) => {
+          for (const it of items) {
+            if (!state.idSet.has(it.id)) {
+              state.idSet.add(it.id);
+              state.urls.push(it);
+            }
+          }
+          renderList();
+          updateClipboard();
+        },
+      });
+      setNotice('完了');
+    }
   } catch (e) {
     if (e.name === 'AbortError') {
       setNotice('ユーザ操作により停止しました。', 'warn');
