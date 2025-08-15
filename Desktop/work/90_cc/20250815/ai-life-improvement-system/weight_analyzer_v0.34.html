@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体重データ機械学習分析システム v0.35-fixed</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+            overflow: hidden;
+        }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+        }
+        .header h1 { 
+            font-size: 2.5em; 
+            margin-bottom: 10px; 
+            font-weight: 300; 
+        }
+        .header p { 
+            font-size: 1.1em; 
+            opacity: 0.9; 
+        }
+        .content { 
+            padding: 30px; 
+        }
+        .section { 
+            margin: 30px 0; 
+            padding: 25px; 
+            border: 2px solid #eee; 
+            border-radius: 10px; 
+            transition: all 0.3s ease;
+        }
+        .section:hover { 
+            border-color: #667eea; 
+            box-shadow: 0 5px 15px rgba(102,126,234,0.1); 
+        }
+        .section h2 { 
+            color: #333; 
+            margin-bottom: 20px; 
+            padding-bottom: 10px; 
+            border-bottom: 2px solid #eee; 
+        }
+        .btn { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            border: none; 
+            padding: 12px 30px; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            font-size: 1em; 
+            margin: 5px; 
+            transition: all 0.3s ease;
+        }
+        .btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(102,126,234,0.3); 
+        }
+        .btn:disabled { 
+            opacity: 0.6; 
+            cursor: not-allowed; 
+            transform: none; 
+        }
+        .status { 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 15px 0; 
+            font-weight: bold; 
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            border: 1px solid #bee5eb; 
+        }
+        .stat-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 20px; 
+            margin: 20px 0; 
+        }
+        .stat-card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            text-align: center; 
+        }
+        .stat-value { 
+            font-size: 2em; 
+            font-weight: bold; 
+            color: #667eea; 
+        }
+        .stat-label { 
+            color: #666; 
+            margin-top: 5px; 
+        }
+        .chart-container { 
+            margin: 20px 0; 
+            text-align: center; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>体重データ機械学習分析システム v0.35-fixed</h1>
+            <p>日付重複バグ修正版</p>
+        </div>
+        
+        <div class="content">
+            <!-- 認証セクション -->
+            <div class="section">
+                <h2>認証</h2>
+                <div id="authStatus" class="status info">認証が必要です</div>
+                <button id="loginBtn" class="btn">Googleでログイン</button>
+                <button id="logoutBtn" class="btn" style="display:none;">ログアウト</button>
+                <div id="userInfo" style="margin-top: 15px; display: none;">
+                    <strong>ログイン中:</strong> <span id="userName"></span>
+                </div>
+            </div>
+            
+            <!-- データ取得セクション -->
+            <div class="section">
+                <h2>データ取得・分析</h2>
+                <button id="fetchDataBtn" class="btn" disabled>体重データを取得</button>
+                <button id="demoDataBtn" class="btn">デモデータで動作確認</button>
+                <button id="analyzeBtn" class="btn" disabled>機械学習分析実行</button>
+                <div id="dataStatus" class="status info">認証後にデータ取得が可能になります</div>
+            </div>
+            
+            <!-- 基本統計 -->
+            <div class="section" id="statisticsSection" style="display: none;">
+                <h2>基本統計</h2>
+                <div class="stat-grid" id="statGrid"></div>
+            </div>
+            
+            <!-- グラフ表示 -->
+            <div class="section" id="chartsSection" style="display: none;">
+                <h2>グラフ表示</h2>
+                <div class="chart-container">
+                    <canvas id="weightChart" width="400" height="200"></canvas>
+                </div>
+                <div class="chart-container" style="margin-top: 30px;">
+                    <canvas id="weeklyChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            
+            <!-- 機械学習結果 -->
+            <div class="section" id="mlSection" style="display: none;">
+                <h2>機械学習分析結果</h2>
+                <div id="mlResults"></div>
+            </div>
+            
+            <!-- AI改善提案 -->
+            <div class="section" id="insightsSection" style="display: none;">
+                <h2>AI改善提案</h2>
+                <div id="insights"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase v8 SDK - テンプレートと同じ -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script>
+        console.log('v0.35-fixed: 日付重複バグ修正版開始');
+        
+        // Firebase設定（テンプレートと同じ）
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5PXKChizYDCXF_GJ4KL6Ylq9K5hCPXWE",
+            authDomain: "shares-b1b97.firebaseapp.com",
+            databaseURL: "https://shares-b1b97-default-rtdb.firebaseio.com",
+            projectId: "shares-b1b97",
+            storageBucket: "shares-b1b97.firebasestorage.app",
+            messagingSenderId: "38311063248",
+            appId: "1:38311063248:web:0d2d5726d12b305b24b8d5"
+        };
+        
+        // Firebase初期化（v8方式）
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+        
+        console.log('v0.34: Firebase v8 初期化完了');
+        
+        let userData = null;
+        let weightData = null;
+        
+        // DOM要素
+        const authStatus = document.getElementById('authStatus');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+        const fetchDataBtn = document.getElementById('fetchDataBtn');
+        const demoDataBtn = document.getElementById('demoDataBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const dataStatus = document.getElementById('dataStatus');
+        
+        // 認証状態監視
+        auth.onAuthStateChanged((user) => {
+            console.log('v0.34: 認証状態変更', user ? '認証済み' : '未認証');
+            if (user) {
+                userData = user;
+                authStatus.innerHTML = '<span class="success">認証済み</span>';
+                authStatus.className = 'status success';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                userInfo.style.display = 'block';
+                userName.textContent = user.displayName || user.email;
+                fetchDataBtn.disabled = false;
+                dataStatus.innerHTML = '<span class="info">データ取得の準備ができました</span>';
+                dataStatus.className = 'status info';
+            } else {
+                userData = null;
+                authStatus.innerHTML = '<span class="info">認証が必要です</span>';
+                authStatus.className = 'status info';
+                loginBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                userInfo.style.display = 'none';
+                fetchDataBtn.disabled = true;
+                analyzeBtn.disabled = true;
+                dataStatus.innerHTML = '<span class="info">認証後にデータ取得が可能になります</span>';
+                dataStatus.className = 'status info';
+                hideAllSections();
+            }
+        });
+        
+        // ログインボタン
+        loginBtn.addEventListener('click', async () => {
+            try {
+                console.log('v0.34: ログイン試行開始');
+                authStatus.innerHTML = '<span class="info">認証中...</span>';
+                authStatus.className = 'status info';
+                
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope('profile');
+                provider.addScope('email');
+                const result = await auth.signInWithPopup(provider);
+                console.log('v0.34: ログイン成功', result.user.email);
+            } catch (error) {
+                console.error('v0.34: 認証エラー:', error);
+                authStatus.innerHTML = '<span class="error">認証に失敗しました</span>';
+                authStatus.className = 'status error';
+            }
+        });
+        
+        // ログアウトボタン
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                console.log('v0.34: ログアウト実行');
+                await auth.signOut();
+                hideAllSections();
+            } catch (error) {
+                console.error('v0.34: ログアウトエラー:', error);
+            }
+        });
+        
+        // データ取得ボタン（テンプレートと同じパス）
+        fetchDataBtn.addEventListener('click', async () => {
+            if (!userData) {
+                dataStatus.innerHTML = '<span class="error">認証が必要です</span>';
+                dataStatus.className = 'status error';
+                return;
+            }
+            
+            try {
+                console.log('v0.34: データ取得開始 - ユーザーID:', userData.uid);
+                dataStatus.innerHTML = '<span class="info">データを取得中...</span>';
+                dataStatus.className = 'status info';
+                
+                // テンプレートと同じパス: users/${currentUser.uid}/weights
+                const userRef = database.ref(`users/${userData.uid}/weights`);
+                const snapshot = await userRef.once('value');
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    weightData = Object.keys(data).map(key => ({
+                        id: key,
+                        ...data[key]
+                    }));
+                    
+                    console.log('v0.34: データ取得成功', weightData.length, '件');
+                    dataStatus.innerHTML = `<span class="success">${weightData.length}件のデータを取得しました</span>`;
+                    dataStatus.className = 'status success';
+                    
+                    displayBasicStatistics();
+                    displayCharts();
+                    analyzeBtn.disabled = false;
+                    
+                } else {
+                    console.log('v0.34: ユーザーデータが存在しません');
+                    dataStatus.innerHTML = '<span class="error">このユーザーの体重データが見つかりません</span>';
+                    dataStatus.className = 'status error';
+                }
+                
+            } catch (error) {
+                console.error('v0.34: データ取得エラー:', error);
+                dataStatus.innerHTML = `<span class="error">データ取得に失敗しました: ${error.message}</span>`;
+                dataStatus.className = 'status error';
+            }
+        });
+        
+        // デモデータボタン
+        demoDataBtn.addEventListener('click', () => {
+            console.log('v0.34: デモデータ読み込み開始');
+            loadDemoData();
+        });
+        
+        // 機械学習分析ボタン
+        analyzeBtn.addEventListener('click', async () => {
+            if (!weightData || weightData.length < 5) {
+                document.getElementById('mlResults').innerHTML = '<span class="error">分析には最低5件のデータが必要です</span>';
+                document.getElementById('mlSection').style.display = 'block';
+                return;
+            }
+            
+            try {
+                console.log('v0.34: 機械学習分析開始');
+                const weights = weightData.map(d => parseFloat(d.weight)).filter(w => !isNaN(w));
+                const trend = calculateTrend(weights);
+                const insights = generateInsights(weightData, trend);
+                
+                document.getElementById('mlResults').innerHTML = `
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                        <h4>トレンド分析</h4>
+                        <p><strong>体重変化傾向:</strong> ${trend.direction}</p>
+                        <p><strong>変化率:</strong> ${trend.rate.toFixed(3)}kg/日</p>
+                        <p><strong>予測精度:</strong> ${trend.accuracy}%</p>
+                        
+                        <h4>7日後予測</h4>
+                        <p><strong>予測体重:</strong> ${trend.prediction.toFixed(1)}kg</p>
+                        <p><strong>変化量:</strong> ${trend.change > 0 ? '+' : ''}${trend.change.toFixed(1)}kg</p>
+                    </div>
+                `;
+                
+                document.getElementById('insights').innerHTML = `
+                    <h3>AI改善提案</h3>
+                    <ul style="list-style: none;">
+                        ${insights.map(insight => `<li style="margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border-left: 4px solid #ffc107;">${insight}</li>`).join('')}
+                    </ul>
+                `;
+                
+                document.getElementById('mlSection').style.display = 'block';
+                document.getElementById('insightsSection').style.display = 'block';
+                
+                console.log('v0.34: 機械学習分析完了');
+                
+            } catch (error) {
+                console.error('v0.34: 分析エラー:', error);
+                document.getElementById('mlResults').innerHTML = '<span class="error">分析に失敗しました</span>';
+                document.getElementById('mlSection').style.display = 'block';
+            }
+        });
+        
+        // 基本統計表示
+        function displayBasicStatistics() {
+            if (!weightData || weightData.length === 0) return;
+            
+            const weights = weightData.map(d => parseFloat(d.weight)).filter(w => !isNaN(w));
+            if (weights.length === 0) return;
+            
+            const avgWeight = weights.reduce((a, b) => a + b, 0) / weights.length;
+            const maxWeight = Math.max(...weights);
+            const minWeight = Math.min(...weights);
+            const weightRange = maxWeight - minWeight;
+            
+            document.getElementById('statGrid').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${avgWeight.toFixed(1)}</div>
+                    <div class="stat-label">平均体重 (kg)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${maxWeight.toFixed(1)}</div>
+                    <div class="stat-label">最大体重 (kg)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${minWeight.toFixed(1)}</div>
+                    <div class="stat-label">最小体重 (kg)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${weightRange.toFixed(1)}</div>
+                    <div class="stat-label">体重変動幅 (kg)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${weights.length}</div>
+                    <div class="stat-label">測定回数</div>
+                </div>
+            `;
+            
+            document.getElementById('statisticsSection').style.display = 'block';
+            console.log('v0.34: 基本統計表示完了');
+        }
+        
+        // グラフ表示
+        function displayCharts() {
+            if (!weightData || weightData.length === 0) return;
+            
+            const sortedData = [...weightData].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const labels = sortedData.map(d => d.date);
+            const weights = sortedData.map(d => parseFloat(d.weight));
+            
+            // Y軸の最小値を動的に計算（最小体重から10kg下、ただし最低50kg）
+            const minWeight = Math.min(...weights);
+            const yAxisMin = Math.max(50, Math.floor(minWeight - 10));
+            
+            // 体重推移グラフ
+            const ctx1 = document.getElementById('weightChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '体重 (kg)',
+                        data: weights,
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '体重推移グラフ'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: yAxisMin,
+                            title: {
+                                display: true,
+                                text: '体重 (kg)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 曜日別平均グラフ
+            const weeklyData = {};
+            sortedData.forEach(d => {
+                if (d.date) {
+                    const day = new Date(d.date).getDay();
+                    if (!weeklyData[day]) weeklyData[day] = [];
+                    weeklyData[day].push(parseFloat(d.weight));
+                }
+            });
+            
+            const weeklyLabels = ['日', '月', '火', '水', '木', '金', '土'];
+            const weeklyAverages = weeklyLabels.map((_, i) => {
+                const dayData = weeklyData[i];
+                return dayData ? dayData.reduce((a, b) => a + b, 0) / dayData.length : 0;
+            });
+            
+            const ctx2 = document.getElementById('weeklyChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: weeklyLabels,
+                    datasets: [{
+                        label: '平均体重 (kg)',
+                        data: weeklyAverages,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 205, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                            'rgba(255, 159, 64, 0.8)',
+                            'rgba(199, 199, 199, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '曜日別平均体重'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: yAxisMin,
+                            title: {
+                                display: true,
+                                text: '平均体重 (kg)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            document.getElementById('chartsSection').style.display = 'block';
+            console.log('v0.34: グラフ表示完了 - Y軸最小値:', yAxisMin);
+        }
+        
+        // デモデータ読み込み
+        function loadDemoData() {
+            const today = new Date();
+            weightData = [];
+            
+            for (let i = 30; i >= 0; i--) {
+                // 修正: ミリ秒計算で確実な日付生成
+                const date = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+                
+                const baseWeight = 72.0;
+                const trend = -0.02 * i;
+                const dailyVariation = (Math.random() - 0.5) * 1.0;
+                const weight = baseWeight + trend + dailyVariation;
+                
+                const timings = ['morning', 'toilet', 'before_bath', 'after_bath'];
+                const timing = timings[Math.floor(Math.random() * timings.length)];
+                
+                weightData.push({
+                    id: `demo_${i}`,
+                    date: date.toISOString().split('T')[0],
+                    time: '08:00',
+                    weight: weight.toFixed(1),
+                    timing: timing,
+                    memo: 'デモデータ'
+                });
+            }
+            
+            dataStatus.innerHTML = `<span class="success">デモデータ ${weightData.length}件を読み込みました</span>`;
+            dataStatus.className = 'status success';
+            
+            displayBasicStatistics();
+            displayCharts();
+            analyzeBtn.disabled = false;
+            
+            console.log('v0.34: デモデータ読み込み完了', weightData.length, '件');
+        }
+        
+        // トレンド計算
+        function calculateTrend(weights) {
+            const n = weights.length;
+            const x = Array.from({length: n}, (_, i) => i);
+            const y = weights;
+            
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            
+            const yMean = sumY / n;
+            const totalSumSquares = y.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0);
+            const residualSumSquares = y.reduce((sum, yi, i) => {
+                const predicted = slope * x[i] + intercept;
+                return sum + Math.pow(yi - predicted, 2);
+            }, 0);
+            const r2 = 1 - (residualSumSquares / totalSumSquares);
+            
+            const direction = slope > 0.05 ? '増加傾向' : slope < -0.05 ? '減少傾向' : '安定';
+            const prediction = slope * (n + 7) + intercept;
+            const change = prediction - weights[weights.length - 1];
+            
+            return {
+                direction,
+                rate: slope,
+                accuracy: Math.round(r2 * 100),
+                prediction,
+                change
+            };
+        }
+        
+        // AI改善提案生成
+        function generateInsights(data, trend) {
+            const insights = [];
+            
+            if (trend.direction === '増加傾向') {
+                insights.push('体重が増加傾向にあります。食事内容の見直しや運動量の増加を検討しましょう');
+                insights.push('カロリー摂取量の記録を開始することをお勧めします');
+            } else if (trend.direction === '減少傾向') {
+                insights.push('体重減少が順調です。現在の生活習慣を維持しましょう');
+                insights.push('筋力維持のための適度な運動も併せて行いましょう');
+            } else {
+                insights.push('体重は安定しています。健康的な状態を維持できています');
+            }
+            
+            const uniqueDates = new Set(data.map(d => d.date)).size;
+            const totalDays = Math.ceil((new Date() - new Date(data[0].date)) / (1000 * 60 * 60 * 24));
+            const frequency = uniqueDates / totalDays;
+            
+            if (frequency < 0.5) {
+                insights.push('測定頻度を上げることで、より正確な体重管理が可能になります');
+            }
+            
+            return insights;
+        }
+        
+        // セクション非表示
+        function hideAllSections() {
+            document.getElementById('statisticsSection').style.display = 'none';
+            document.getElementById('chartsSection').style.display = 'none';
+            document.getElementById('mlSection').style.display = 'none';
+            document.getElementById('insightsSection').style.display = 'none';
+        }
+        
+        // グローバルに公開（デバッグ用）
+        window.loadDemoData = loadDemoData;
+        
+        console.log('v0.34: システム初期化完了 - 日付表示とY軸スケール修正版');
+    </script>
+</body>
+</html>
