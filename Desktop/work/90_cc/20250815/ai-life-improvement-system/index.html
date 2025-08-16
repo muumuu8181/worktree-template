@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeLog AI分析システム v0.40.01.01</title>
+    <title>LifeLog AI分析システム v0.37-Step2</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -130,8 +130,8 @@
         <div class="header">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 3px 0;">
                 <div>
-                    <h1 style="font-size: 18px; margin: 0; line-height: 1;">LifeLog AI分析システム v0.40.01</h1>
-                    <p style="margin: 0; font-size: 11px; line-height: 1;">タブ機能・UI最適化版</p>
+                    <h1 style="font-size: 18px; margin: 0; line-height: 1;">LifeLog AI分析システム v0.37-Step2</h1>
+                    <p style="margin: 0; font-size: 11px; line-height: 1;">関数分離対応版</p>
                 </div>
                 <!-- 認証セクション（右側） -->
                 <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
@@ -155,13 +155,40 @@
                 </div>
             </div>
             
-            <!-- データ取得セクション -->
-            <div class="section">
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <h2 style="margin: 0; font-size: 14px;">データ分析</h2>
-                    <button id="fetchDataBtn" class="btn" style="padding: 2px 6px;" disabled>データ取得</button>
-                    <button id="analyzeBtn" class="btn" style="padding: 2px 6px;" disabled>ML分析</button>
-                    <div id="dataStatus" class="status info" style="margin: 0; padding: 2px 6px; font-size: 11px;">認証後にデータ取得が可能になります</div>
+            <!-- 体重管理タブコンテンツ -->
+            <div id="weightTabContent" class="tab-content">
+                <!-- データ取得セクション -->
+                <div class="section">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <h2 style="margin: 0; font-size: 14px;">データ分析</h2>
+                        <button id="fetchDataBtn" class="btn" style="padding: 2px 6px;" disabled>データ取得</button>
+                        <button id="analyzeBtn" class="btn" style="padding: 2px 6px;" disabled>ML分析</button>
+                        <div id="dataStatus" class="status info" style="margin: 0; padding: 2px 6px; font-size: 11px;">認証後にデータ取得が可能になります</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 食事管理タブコンテンツ -->
+            <div id="mealTabContent" class="tab-content" style="display: none;">
+                <div class="section">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <h2 style="margin: 0; font-size: 14px;">食事データ分析</h2>
+                        <button id="fetchMealDataBtn" class="btn" style="padding: 2px 6px;" disabled>食事データ取得</button>
+                        <button id="analyzeMealBtn" class="btn" style="padding: 2px 6px;" disabled>食事ML分析</button>
+                        <div id="mealDataStatus" class="status info" style="margin: 0; padding: 2px 6px; font-size: 11px;">認証後にデータ取得が可能になります</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 運動管理タブコンテンツ -->
+            <div id="exerciseTabContent" class="tab-content" style="display: none;">
+                <div class="section">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <h2 style="margin: 0; font-size: 14px;">運動データ分析</h2>
+                        <button id="fetchExerciseDataBtn" class="btn" style="padding: 2px 6px;" disabled>運動データ取得</button>
+                        <button id="analyzeExerciseBtn" class="btn" style="padding: 2px 6px;" disabled>運動ML分析</button>
+                        <div id="exerciseDataStatus" class="status info" style="margin: 0; padding: 2px 6px; font-size: 11px;">認証後にデータ取得が可能になります</div>
+                    </div>
                 </div>
             </div>
             
@@ -228,24 +255,65 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
+    <!-- 🔄 Step 1: Firebase設定分離 -->
+    <script src="config/firebase.js"></script>
+    
+    <!-- 🔄 Step 2: ユーティリティ関数分離 -->
+    <script src="utils/helpers.js"></script>
+    
     <script>
         console.log('v0.40.01: 日付重複バグ修正版開始');
         
-        // Firebase設定（テンプレートと同じ）
-        const firebaseConfig = {
-            apiKey: "AIzaSyA5PXKChizYDCXF_GJ4KL6Ylq9K5hCPXWE",
-            authDomain: "shares-b1b97.firebaseapp.com",
-            databaseURL: "https://shares-b1b97-default-rtdb.firebaseio.com",
-            projectId: "shares-b1b97",
-            storageBucket: "shares-b1b97.firebasestorage.app",
-            messagingSenderId: "38311063248",
-            appId: "1:38311063248:web:0d2d5726d12b305b24b8d5"
+        // 🔄 Step 0: Migration Log System
+        const MigrationLog = {
+            log: (step, action, data) => {
+                const timestamp = new Date().toISOString();
+                const logMessage = `🔄 [Step${step}] ${action}`;
+                console.log(logMessage + ':', data);
+                
+                // LocalStorageにも保存
+                try {
+                    const logs = JSON.parse(localStorage.getItem('migrationLogs') || '[]');
+                    logs.push({step, action, data, timestamp});
+                    localStorage.setItem('migrationLogs', JSON.stringify(logs));
+                } catch (e) {
+                    console.warn('ログ保存エラー:', e);
+                }
+            },
+            
+            getLogs: (stepNumber = null) => {
+                try {
+                    const logs = JSON.parse(localStorage.getItem('migrationLogs') || '[]');
+                    return stepNumber ? logs.filter(l => l.step === stepNumber) : logs;
+                } catch (e) {
+                    console.warn('ログ取得エラー:', e);
+                    return [];
+                }
+            },
+            
+            clearLogs: () => {
+                localStorage.removeItem('migrationLogs');
+                console.log('🔄 Migration logs cleared');
+            }
         };
         
-        // Firebase初期化（v8方式）
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
+        // Step 0 開始ログ
+        MigrationLog.log(0, 'システム初期化', {
+            version: 'v0.37-Step2',
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent
+        });
+        
+        // 🔄 Step 1: Firebase設定分離版初期化
+        const {auth, database} = FirebaseConfig.init();
+        
+        // Step 1 ログ
+        MigrationLog.log(1, 'メインファイル', {
+            action: '設定分離適用',
+            oldMethod: 'firebase.initializeApp(firebaseConfig)',
+            newMethod: 'FirebaseConfig.init()',
+            timestamp: Date.now()
+        });
         
         console.log('v0.40.01: Firebase v8 初期化完了');
         
@@ -275,6 +343,11 @@
         // 認証状態監視
         auth.onAuthStateChanged((user) => {
             console.log('v0.40.01: 認証状態変更', user ? '認証済み' : '未認証');
+            MigrationLog.log(0, '認証状態変更', {
+                user: user?.email || '未認証',
+                uid: user?.uid || null,
+                timestamp: Date.now()
+            });
             if (user) {
                 userData = user;
                 authStatus.innerHTML = '<span class="success">認証済み</span>';
@@ -286,6 +359,14 @@
                 fetchDataBtn.disabled = false;
                 dataStatus.innerHTML = '<span class="info">データ取得の準備ができました</span>';
                 dataStatus.className = 'status info';
+                
+                // 食事・運動ボタンも有効化
+                document.getElementById('fetchMealDataBtn').disabled = false;
+                document.getElementById('fetchExerciseDataBtn').disabled = false;
+                document.getElementById('mealDataStatus').innerHTML = 'データ取得の準備ができました';
+                document.getElementById('mealDataStatus').className = 'status info';
+                document.getElementById('exerciseDataStatus').innerHTML = 'データ取得の準備ができました';
+                document.getElementById('exerciseDataStatus').className = 'status info';
             } else {
                 userData = null;
                 authStatus.innerHTML = '<span class="info">認証が必要です</span>';
@@ -341,6 +422,10 @@
             
             try {
                 console.log('v0.40.01: データ取得開始 - ユーザーID:', userData.uid);
+                MigrationLog.log(0, 'データ取得開始', {
+                    userId: userData.uid,
+                    path: `users/${userData.uid}/weights`
+                });
                 dataStatus.innerHTML = '<span class="info">データを取得中...</span>';
                 dataStatus.className = 'status info';
                 
@@ -356,6 +441,11 @@
                     }));
                     
                     console.log('🐛 実データDEBUG: データ取得成功', weightData.length, '件');
+                    MigrationLog.log(0, 'データ取得成功', {
+                        dataCount: weightData.length,
+                        firstDate: weightData[0]?.date,
+                        lastDate: weightData[weightData.length - 1]?.date
+                    });
                     console.log('🐛 実データDEBUG: 全データ:');
                     weightData.forEach((d, i) => {
                         console.log(`${i}: ${d.date} - ${d.weight}kg`);
@@ -491,8 +581,10 @@
             try {
                 console.log('v0.40.01: 機械学習分析開始');
                 const weights = weightData.map(d => parseFloat(d.weight)).filter(w => !isNaN(w));
-                const trend = calculateTrend(weights);
-                const insights = generateInsights(weightData, trend);
+                // 🔄 Step 2: 分離版関数呼び出し
+                const trend = DataUtils.calculateTrend(weights);
+                // 🔄 Step 2: 分離版関数呼び出し
+                const insights = DataUtils.generateInsights(weightData, trend);
                 
                 document.getElementById('mlResults').innerHTML = `
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
@@ -580,7 +672,14 @@
             console.log(`🔄 グラフ更新: ${currentTimeScale}スケール`);
             
             // スケール別でデータを集約
-            const aggregatedData = aggregateDataByScale(weightData, currentTimeScale);
+            // 🔄 Step 2: 分離版関数呼び出し
+            const aggregatedData = DataUtils.aggregateDataByScale(weightData, currentTimeScale);
+            MigrationLog.log(2, 'メインファイル', {
+                action: '関数呼び出し変更',
+                function: 'aggregateDataByScale',
+                oldMethod: 'aggregateDataByScale()',
+                newMethod: 'DataUtils.aggregateDataByScale()'
+            });
             
             console.log('🔄 集約後データ:', aggregatedData);
             
@@ -947,161 +1046,11 @@
             console.log('v0.40.01: デモデータ読み込み完了', weightData.length, '件');
         }
         
-        // スケール別データ集約
-        function aggregateDataByScale(data, scale) {
-            // エラーデータを除外
-            const validData = data.filter(d => !isNaN(parseFloat(d.weight)));
-            
-            if (scale === 'hour') {
-                // 時間別 - 日付+時間でグループ化
-                const grouped = {};
-                validData.forEach(d => {
-                    const key = `${d.date} ${d.time || '00:00'}`;
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push(parseFloat(d.weight));
-                });
-                
-                return Object.keys(grouped).sort().map(key => {
-                    const weights = grouped[key];
-                    return {
-                        label: key,
-                        min: Math.min(...weights),
-                        max: Math.max(...weights),
-                        avg: weights.reduce((a, b) => a + b, 0) / weights.length,
-                        count: weights.length
-                    };
-                });
-            }
-            
-            if (scale === 'day') {
-                // 日別 - 日付でグループ化
-                const grouped = {};
-                validData.forEach(d => {
-                    const key = d.date;
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push(parseFloat(d.weight));
-                });
-                
-                return Object.keys(grouped).sort().map(key => {
-                    const weights = grouped[key];
-                    return {
-                        label: key,
-                        min: Math.min(...weights),
-                        max: Math.max(...weights),
-                        avg: weights.reduce((a, b) => a + b, 0) / weights.length,
-                        count: weights.length
-                    };
-                });
-            }
-            
-            if (scale === 'week') {
-                // 週別 - 週の開始日でグループ化
-                const grouped = {};
-                validData.forEach(d => {
-                    const date = new Date(d.date);
-                    const weekStart = new Date(date);
-                    weekStart.setDate(date.getDate() - date.getDay());
-                    const key = weekStart.toISOString().split('T')[0];
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push(parseFloat(d.weight));
-                });
-                
-                return Object.keys(grouped).sort().map(key => {
-                    const weights = grouped[key];
-                    return {
-                        label: `${key}週`,
-                        min: Math.min(...weights),
-                        max: Math.max(...weights),
-                        avg: weights.reduce((a, b) => a + b, 0) / weights.length,
-                        count: weights.length
-                    };
-                });
-            }
-            
-            if (scale === 'month') {
-                // 月別 - 年月でグループ化
-                const grouped = {};
-                validData.forEach(d => {
-                    const date = new Date(d.date);
-                    const key = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push(parseFloat(d.weight));
-                });
-                
-                return Object.keys(grouped).sort().map(key => {
-                    const weights = grouped[key];
-                    return {
-                        label: `${key}月`,
-                        min: Math.min(...weights),
-                        max: Math.max(...weights),
-                        avg: weights.reduce((a, b) => a + b, 0) / weights.length,
-                        count: weights.length
-                    };
-                });
-            }
-            
-            return [];
-        }
+        // 🔄 Step 2: aggregateDataByScale関数は utils/helpers.js に移動済み
         
-        // トレンド計算
-        function calculateTrend(weights) {
-            const n = weights.length;
-            const x = Array.from({length: n}, (_, i) => i);
-            const y = weights;
-            
-            const sumX = x.reduce((a, b) => a + b, 0);
-            const sumY = y.reduce((a, b) => a + b, 0);
-            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
-            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
-            
-            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-            const intercept = (sumY - slope * sumX) / n;
-            
-            const yMean = sumY / n;
-            const totalSumSquares = y.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0);
-            const residualSumSquares = y.reduce((sum, yi, i) => {
-                const predicted = slope * x[i] + intercept;
-                return sum + Math.pow(yi - predicted, 2);
-            }, 0);
-            const r2 = 1 - (residualSumSquares / totalSumSquares);
-            
-            const direction = slope > 0.05 ? '増加傾向' : slope < -0.05 ? '減少傾向' : '安定';
-            const prediction = slope * (n + 7) + intercept;
-            const change = prediction - weights[weights.length - 1];
-            
-            return {
-                direction,
-                rate: slope,
-                accuracy: Math.round(r2 * 100),
-                prediction,
-                change
-            };
-        }
+        // 🔄 Step 2: calculateTrend関数は utils/helpers.js に移動済み
         
-        // AI改善提案生成
-        function generateInsights(data, trend) {
-            const insights = [];
-            
-            if (trend.direction === '増加傾向') {
-                insights.push('体重が増加傾向にあります。食事内容の見直しや運動量の増加を検討しましょう');
-                insights.push('カロリー摂取量の記録を開始することをお勧めします');
-            } else if (trend.direction === '減少傾向') {
-                insights.push('体重減少が順調です。現在の生活習慣を維持しましょう');
-                insights.push('筋力維持のための適度な運動も併せて行いましょう');
-            } else {
-                insights.push('体重は安定しています。健康的な状態を維持できています');
-            }
-            
-            const uniqueDates = new Set(data.map(d => d.date)).size;
-            const totalDays = Math.ceil((new Date() - new Date(data[0].date)) / (1000 * 60 * 60 * 24));
-            const frequency = uniqueDates / totalDays;
-            
-            if (frequency < 0.5) {
-                insights.push('測定頻度を上げることで、より正確な体重管理が可能になります');
-            }
-            
-            return insights;
-        }
+        // 🔄 Step 2: generateInsights関数は utils/helpers.js に移動済み
         
         // セクション非表示
         function hideAllSections() {
@@ -1111,10 +1060,189 @@
             document.getElementById('insightsSection').style.display = 'none';
         }
         
+        // タブ切り替え機能
+        function initTabs() {
+            const weightTabBtn = document.getElementById('weightTabBtn');
+            const mealTabBtn = document.getElementById('mealTabBtn');
+            const exerciseTabBtn = document.getElementById('exerciseTabBtn');
+            
+            const weightTabContent = document.getElementById('weightTabContent');
+            const mealTabContent = document.getElementById('mealTabContent');
+            const exerciseTabContent = document.getElementById('exerciseTabContent');
+            
+            // 食事・運動タブの要素取得
+            const fetchMealDataBtn = document.getElementById('fetchMealDataBtn');
+            const analyzeMealBtn = document.getElementById('analyzeMealBtn');
+            const mealDataStatus = document.getElementById('mealDataStatus');
+            const fetchExerciseDataBtn = document.getElementById('fetchExerciseDataBtn');
+            const analyzeExerciseBtn = document.getElementById('analyzeExerciseBtn');
+            const exerciseDataStatus = document.getElementById('exerciseDataStatus');
+            
+            // タブ切り替え
+            weightTabBtn.addEventListener('click', () => switchTab('weight'));
+            mealTabBtn.addEventListener('click', () => switchTab('meal'));
+            exerciseTabBtn.addEventListener('click', () => switchTab('exercise'));
+            
+            function switchTab(tabName) {
+                // すべてのタブボタンをリセット
+                [weightTabBtn, mealTabBtn, exerciseTabBtn].forEach(btn => {
+                    btn.style.background = '';
+                    btn.style.color = '';
+                });
+                
+                // すべてのタブコンテンツを非表示
+                [weightTabContent, mealTabContent, exerciseTabContent].forEach(content => {
+                    content.style.display = 'none';
+                });
+                
+                // 体重管理固有のセクションを隠す
+                const statisticsSection = document.getElementById('statisticsSection');
+                const chartsSection = document.getElementById('chartsSection');
+                const mlSection = document.getElementById('mlSection');
+                const insightsSection = document.getElementById('insightsSection');
+                
+                if (tabName === 'weight') {
+                    weightTabBtn.style.background = '#444';
+                    weightTabBtn.style.color = 'white';
+                    weightTabContent.style.display = 'block';
+                    // 体重データがあれば統計・グラフを表示
+                    if (weightData && weightData.length > 0) {
+                        if (statisticsSection) statisticsSection.style.display = 'block';
+                        if (chartsSection) chartsSection.style.display = 'block';
+                    }
+                } else {
+                    // 食事・運動タブでは体重データのセクションを隠す
+                    if (statisticsSection) statisticsSection.style.display = 'none';
+                    if (chartsSection) chartsSection.style.display = 'none';
+                    if (mlSection) mlSection.style.display = 'none';
+                    if (insightsSection) insightsSection.style.display = 'none';
+                    
+                    if (tabName === 'meal') {
+                        mealTabBtn.style.background = '#444';
+                        mealTabBtn.style.color = 'white';
+                        mealTabContent.style.display = 'block';
+                    } else if (tabName === 'exercise') {
+                        exerciseTabBtn.style.background = '#444';
+                        exerciseTabBtn.style.color = 'white';
+                        exerciseTabContent.style.display = 'block';
+                    }
+                }
+            }
+            
+            // 食事データ取得機能
+            fetchMealDataBtn.addEventListener('click', async () => {
+                if (!userData) {
+                    mealDataStatus.innerHTML = '認証が必要です';
+                    mealDataStatus.className = 'status error';
+                    return;
+                }
+                
+                try {
+                    console.log('v0.36-debug: 食事データ取得開始 - ユーザーID:', userData.uid);
+                    mealDataStatus.innerHTML = '食事データを取得中...';
+                    mealDataStatus.className = 'status info';
+                    
+                    const mealRef = database.ref(`users/${userData.uid}/meals`);
+                    const snapshot = await mealRef.once('value');
+                    
+                    if (snapshot.exists()) {
+                        const mealData = snapshot.val();
+                        mealDataStatus.innerHTML = `${Object.keys(mealData).length}件の食事データを取得しました`;
+                        mealDataStatus.className = 'status success';
+                        analyzeMealBtn.disabled = false;
+                    } else {
+                        mealDataStatus.innerHTML = '食事データが見つかりません（データベースに食事記録がありません）';
+                        mealDataStatus.className = 'status error';
+                        console.log('食事データ null: パス users/' + userData.uid + '/meals にデータなし');
+                    }
+                } catch (error) {
+                    console.error('v0.36-debug: 食事データ取得エラー:', error);
+                    mealDataStatus.innerHTML = `食事データ取得に失敗しました: ${error.message}`;
+                    mealDataStatus.className = 'status error';
+                }
+            });
+            
+            // 運動データ取得機能
+            fetchExerciseDataBtn.addEventListener('click', async () => {
+                if (!userData) {
+                    exerciseDataStatus.innerHTML = '認証が必要です';
+                    exerciseDataStatus.className = 'status error';
+                    return;
+                }
+                
+                try {
+                    console.log('v0.36-debug: 運動データ取得開始 - ユーザーID:', userData.uid);
+                    exerciseDataStatus.innerHTML = '運動データを取得中...';
+                    exerciseDataStatus.className = 'status info';
+                    
+                    const exerciseRef = database.ref(`users/${userData.uid}/exercises`);
+                    const snapshot = await exerciseRef.once('value');
+                    
+                    if (snapshot.exists()) {
+                        const exerciseData = snapshot.val();
+                        exerciseDataStatus.innerHTML = `${Object.keys(exerciseData).length}件の運動データを取得しました`;
+                        exerciseDataStatus.className = 'status success';
+                        analyzeExerciseBtn.disabled = false;
+                    } else {
+                        exerciseDataStatus.innerHTML = '運動データが見つかりません（データベースに運動記録がありません）';
+                        exerciseDataStatus.className = 'status error';
+                        console.log('運動データ null: パス users/' + userData.uid + '/exercises にデータなし');
+                    }
+                } catch (error) {
+                    console.error('v0.36-debug: 運動データ取得エラー:', error);
+                    exerciseDataStatus.innerHTML = `運動データ取得に失敗しました: ${error.message}`;
+                    exerciseDataStatus.className = 'status error';
+                }
+            });
+            
+            // ML分析ボタン（プレースホルダー）
+            analyzeMealBtn.addEventListener('click', () => {
+                mealDataStatus.innerHTML = '食事データのML分析機能は今後実装予定です';
+                mealDataStatus.className = 'status success';
+            });
+            
+            analyzeExerciseBtn.addEventListener('click', () => {
+                exerciseDataStatus.innerHTML = '運動データのML分析機能は今後実装予定です';
+                exerciseDataStatus.className = 'status success';
+            });
+        }
+        
+        // 🔄 Step 0: 検証用関数をグローバル公開
+        window.validateStep = function(stepNumber) {
+            console.log(`✅ Step ${stepNumber} 検証開始`);
+            
+            // 1. ログ確認
+            const logs = MigrationLog.getLogs(stepNumber);
+            console.log('📋 ステップログ:', logs);
+            
+            // 2. 機能テスト
+            console.log('🔐 認証状態:', firebase.auth().currentUser?.email || '未認証');
+            console.log('📊 データ状態:', window.weightData?.length || 0, '件');
+            
+            // 3. UI状態確認
+            const activeTab = document.querySelector('[style*="background: #444"]')?.textContent;
+            console.log('🎯 アクティブタブ:', activeTab || '不明');
+            
+            // 4. 全体ログサマリー
+            const allLogs = MigrationLog.getLogs();
+            console.log('📊 総ログ数:', allLogs.length);
+            
+            return {
+                step: stepNumber,
+                logs: logs,
+                status: '✅ 検証完了',
+                timestamp: new Date().toISOString()
+            };
+        };
+        
         // グローバルに公開（デバッグ用）
         window.loadDemoData = loadDemoData;
+        window.MigrationLog = MigrationLog;
         
-        console.log('v0.40.01: システム初期化完了 - 日付表示とY軸スケール修正版');
+        // タブ機能初期化
+        initTabs();
+        
+        console.log('v0.37-Step2: システム初期化完了 - 関数分離対応版');
     </script>
 </body>
 </html>
