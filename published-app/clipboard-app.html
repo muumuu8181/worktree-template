@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クリップボード管理アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .clipboard-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.4rem;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4ECDC4;
+            padding-bottom: 5px;
+        }
+        
+        .clipboard-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+        
+        .clipboard-input:focus {
+            outline: none;
+            border-color: #4ECDC4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .history-section {
+            margin-top: 30px;
+        }
+        
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+        
+        .history-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            background-color: #e8f8f5;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-text {
+            font-family: monospace;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-bottom: 8px;
+            word-break: break-all;
+            white-space: pre-wrap;
+            max-height: 100px;
+            overflow: hidden;
+        }
+        
+        .history-meta {
+            font-size: 0.8rem;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .action-btn {
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background: #cc0000;
+        }
+        
+        .button-group-inline {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .auto-log {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-width: 300px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 クリップボード管理</h1>
+            <p>クリップボードの内容を管理し、履歴を保存できます</p>
+        </div>
+        
+        <div class="content">
+            <div id="status"></div>
+            
+            <div class="clipboard-section">
+                <h2 class="section-title">📝 クリップボード編集</h2>
+                <textarea 
+                    id="clipboardText" 
+                    class="clipboard-input" 
+                    placeholder="ここにテキストを入力するか、「クリップボード読み取り」ボタンで現在の内容を読み込みます...">
+                </textarea>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="readClipboard()">📥 クリップボード読み取り</button>
+                    <button class="btn btn-secondary" onclick="writeClipboard()">📤 クリップボードに書き込み</button>
+                    <button class="btn btn-info" onclick="clearText()">🗑️ テキストクリア</button>
+                </div>
+            </div>
+            
+            <div class="history-section">
+                <h2 class="section-title">📚 クリップボード履歴</h2>
+                <div class="button-group">
+                    <button class="btn btn-info" onclick="refreshHistory()">🔄 履歴更新</button>
+                    <button class="btn btn-secondary" onclick="clearHistory()">🗑️ 履歴クリア</button>
+                </div>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="autoLog" class="auto-log" style="display: none;"></div>
+
+    <script>
+        // 自動ログ機能
+        function autoLog(message) {
+            const logElement = document.getElementById('autoLog');
+            const timestamp = new Date().toLocaleTimeString('ja-JP');
+            logElement.textContent = `[${timestamp}] ${message}`;
+            logElement.style.display = 'block';
+            
+            setTimeout(() => {
+                logElement.style.display = 'none';
+            }, 3000);
+            
+            console.log(`[ClipboardApp] ${timestamp}: ${message}`);
+        }
+
+        // ステータス表示
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${isError ? 'status-error' : 'status-success'}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+            
+            autoLog(message);
+        }
+
+        // ローカルストレージキー
+        const HISTORY_KEY = 'clipboardHistory';
+        const MAX_HISTORY = 10;
+
+        // 履歴の取得
+        function getHistory() {
+            try {
+                const history = localStorage.getItem(HISTORY_KEY);
+                return history ? JSON.parse(history) : [];
+            } catch (error) {
+                autoLog('履歴取得エラー: ' + error.message);
+                return [];
+            }
+        }
+
+        // 履歴の保存
+        function saveHistory(history) {
+            try {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+                autoLog('履歴を保存しました');
+            } catch (error) {
+                autoLog('履歴保存エラー: ' + error.message);
+            }
+        }
+
+        // 履歴に追加
+        function addToHistory(text) {
+            if (!text || text.trim() === '') return;
+            
+            const history = getHistory();
+            const newItem = {
+                text: text,
+                timestamp: new Date().toISOString(),
+                id: Date.now()
+            };
+            
+            // 同じテキストが既に存在する場合は削除
+            const filteredHistory = history.filter(item => item.text !== text);
+            
+            // 新しいアイテムを先頭に追加
+            filteredHistory.unshift(newItem);
+            
+            // 最大件数を超えた場合は古いものを削除
+            if (filteredHistory.length > MAX_HISTORY) {
+                filteredHistory.splice(MAX_HISTORY);
+            }
+            
+            saveHistory(filteredHistory);
+            refreshHistory();
+            autoLog(`履歴に追加: ${text.length}文字のテキスト`);
+        }
+
+        // クリップボード読み取り
+        async function readClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    document.getElementById('clipboardText').value = text;
+                    showStatus('クリップボードから読み取りました');
+                    autoLog('クリップボード読み取り成功');
+                } else {
+                    showStatus('このブラウザではクリップボード読み取りがサポートされていません', true);
+                    autoLog('クリップボード読み取り非対応');
+                }
+            } catch (error) {
+                showStatus('クリップボード読み取りに失敗しました: ' + error.message, true);
+                autoLog('クリップボード読み取りエラー: ' + error.message);
+            }
+        }
+
+        // クリップボード書き込み
+        async function writeClipboard() {
+            const text = document.getElementById('clipboardText').value;
+            
+            if (!text) {
+                showStatus('書き込むテキストがありません', true);
+                return;
+            }
+            
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    addToHistory(text);
+                    showStatus('クリップボードに書き込みました');
+                    autoLog('クリップボード書き込み成功');
+                } else {
+                    // フォールバック: テキストを選択してコピーを促す
+                    const textArea = document.getElementById('clipboardText');
+                    textArea.select();
+                    document.execCommand('copy');
+                    addToHistory(text);
+                    showStatus('テキストを選択しました。Ctrl+Cでコピーしてください');
+                    autoLog('クリップボード書き込み（フォールバック）');
+                }
+            } catch (error) {
+                showStatus('クリップボード書き込みに失敗しました: ' + error.message, true);
+                autoLog('クリップボード書き込みエラー: ' + error.message);
+            }
+        }
+
+        // テキストクリア
+        function clearText() {
+            document.getElementById('clipboardText').value = '';
+            showStatus('テキストをクリアしました');
+            autoLog('テキストクリア');
+        }
+
+        // 履歴表示
+        function refreshHistory() {
+            const history = getHistory();
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">履歴はありません</div>';
+                return;
+            }
+            
+            historyList.innerHTML = history.map(item => {
+                const date = new Date(item.timestamp).toLocaleString('ja-JP');
+                const preview = item.text.length > 100 ? item.text.substring(0, 100) + '...' : item.text;
+                
+                return `
+                    <div class="history-item" onclick="selectHistoryItem('${item.id}')">
+                        <div class="history-text">${escapeHtml(preview)}</div>
+                        <div class="history-meta">
+                            <span>${date} (${item.text.length}文字)</span>
+                            <div class="button-group-inline">
+                                <button class="action-btn copy-btn" onclick="event.stopPropagation(); copyHistoryItem('${item.id}')" title="クリップボードにコピー">📋 コピー</button>
+                                <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteHistoryItem('${item.id}')" title="履歴から削除">🗑️ 削除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            autoLog(`履歴を更新: ${history.length}件`);
+        }
+
+        // HTML エスケープ
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 履歴アイテム選択
+        function selectHistoryItem(id) {
+            const history = getHistory();
+            const item = history.find(h => h.id == id);
+            if (item) {
+                document.getElementById('clipboardText').value = item.text;
+                showStatus('履歴からテキストを選択しました');
+                autoLog('履歴アイテム選択');
+            }
+        }
+
+        // 履歴アイテムコピー
+        async function copyHistoryItem(id) {
+            const history = getHistory();
+            const item = history.find(h => h.id == id);
+            if (item) {
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(item.text);
+                        showStatus(`クリップボードにコピーしました (${item.text.length}文字)`);
+                        autoLog(`履歴からコピー: ${item.text.length}文字`);
+                        
+                        // 成功時の視覚的フィードバック
+                        const button = event.target;
+                        const originalText = button.textContent;
+                        button.textContent = '✓ コピー済み';
+                        button.style.background = '#20c997';
+                        
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.style.background = '#28a745';
+                        }, 1500);
+                        
+                    } else {
+                        // フォールバック
+                        document.getElementById('clipboardText').value = item.text;
+                        const textArea = document.getElementById('clipboardText');
+                        textArea.select();
+                        document.execCommand('copy');
+                        showStatus('テキストを選択しました。Ctrl+Cでコピーしてください');
+                        autoLog('履歴からコピー（フォールバック）');
+                    }
+                } catch (error) {
+                    showStatus('コピーに失敗しました: ' + error.message, true);
+                    autoLog('コピーエラー: ' + error.message);
+                }
+            }
+        }
+
+        // 履歴アイテム削除
+        function deleteHistoryItem(id) {
+            const history = getHistory();
+            const newHistory = history.filter(h => h.id != id);
+            saveHistory(newHistory);
+            refreshHistory();
+            showStatus('履歴アイテムを削除しました');
+            autoLog('履歴アイテム削除');
+        }
+
+        // 履歴クリア
+        function clearHistory() {
+            if (confirm('すべての履歴を削除しますか？')) {
+                localStorage.removeItem(HISTORY_KEY);
+                refreshHistory();
+                showStatus('履歴をクリアしました');
+                autoLog('履歴クリア');
+            }
+        }
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshHistory();
+            autoLog('クリップボードアプリ開始');
+            
+            // テキストエリアのキーボードショートカット
+            document.getElementById('clipboardText').addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        writeClipboard();
+                    }
+                }
+            });
+        });
+
+        // 定期的な自動保存（オプション）
+        setInterval(function() {
+            const text = document.getElementById('clipboardText').value;
+            if (text && text.length > 0) {
+                // 自動保存は履歴に追加しない（明示的な操作のみ）
+                autoLog('自動チェック実行');
+            }
+        }, 30000); // 30秒ごと
+    </script>
+</body>
+</html>
