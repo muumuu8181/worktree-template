@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #333;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 5px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+    button {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #3367d6;
+    }
+    .cancel-btn {
+      background: #666;
+    }
+    .cancel-btn:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <h3>➕ 新規売上を記録</h3>
+
+  <div class="form-group">
+    <label>日付 *</label>
+    <input type="date" id="date" required>
+  </div>
+
+  <div class="form-group">
+    <label>商品カテゴリ *</label>
+    <select id="category" required>
+      <option value="">選択してください</option>
+      <option value="電子機器">電子機器</option>
+      <option value="文具">文具</option>
+      <option value="書籍">書籍</option>
+      <option value="食品">食品</option>
+      <option value="その他">その他</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>商品名 *</label>
+    <input type="text" id="productName" placeholder="例: ノートPC" required>
+  </div>
+
+  <div class="form-group">
+    <label>数量 *</label>
+    <input type="number" id="quantity" min="1" value="1" required>
+  </div>
+
+  <div class="form-group">
+    <label>単価（円）*</label>
+    <input type="number" id="unitPrice" min="0" placeholder="例: 150000" required>
+  </div>
+
+  <div class="form-group">
+    <label>担当者 *</label>
+    <input type="text" id="person" placeholder="例: 田中太郎" required>
+  </div>
+
+  <div class="form-group">
+    <label>メモ</label>
+    <textarea id="memo" rows="2" placeholder="任意"></textarea>
+  </div>
+
+  <button onclick="saveSales()">💾 保存</button>
+  <button onclick="google.script.host.close()" class="cancel-btn">キャンセル</button>
+
+  <script>
+    // 今日の日付をデフォルト設定
+    document.getElementById('date').valueAsDate = new Date();
+
+    function saveSales() {
+      const formData = {
+        date: document.getElementById('date').value,
+        category: document.getElementById('category').value,
+        productName: document.getElementById('productName').value,
+        quantity: parseInt(document.getElementById('quantity').value),
+        unitPrice: parseInt(document.getElementById('unitPrice').value),
+        person: document.getElementById('person').value,
+        memo: document.getElementById('memo').value
+      };
+
+      // バリデーション
+      if (!formData.date || !formData.category || !formData.productName ||
+          !formData.quantity || !formData.unitPrice || !formData.person) {
+        alert('必須項目を入力してください');
+        return;
+      }
+
+      // 保存処理
+      google.script.run
+        .withSuccessHandler(function(result) {
+          alert(result.message);
+          google.script.host.close();
+        })
+        .withFailureHandler(function(error) {
+          alert('エラー: ' + error);
+        })
+        .saveSalesData(formData);
+    }
+  </script>
+</body>
+</html>

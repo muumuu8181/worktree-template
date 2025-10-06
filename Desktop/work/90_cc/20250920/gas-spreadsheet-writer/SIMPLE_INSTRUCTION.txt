@@ -1,0 +1,10 @@
+【新人AIへの指示】
+
+このフォルダ内で実行：
+C:\Users\user\Desktop\work\90_cc\20250920\gas-spreadsheet-writer\
+
+実行コマンド：
+node direct-gas-execute.cjs
+
+これでE5セルに「Claude Was Here!」が書き込まれます。
+Script ID: 1kJx_xJ5kiHt6OVFAMSiWBmmqzq_BW6PWgkkJLs4tYIg5OJ_6z7WwYzmK

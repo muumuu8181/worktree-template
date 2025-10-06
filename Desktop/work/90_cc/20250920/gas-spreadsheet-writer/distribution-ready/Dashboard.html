@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h2 { color: #333; margin-bottom: 20px; }
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #4285f4;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
+    .chart-container {
+      height: 200px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      margin-top: 20px;
+    }
+    .bar {
+      width: 60px;
+      background: linear-gradient(to top, #4285f4, #66a6ff);
+      border-radius: 5px 5px 0 0;
+      position: relative;
+      transition: all 0.3s;
+    }
+    .bar:hover {
+      transform: translateY(-5px);
+    }
+    .bar-label {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>📊 売上ダッシュボード</h2>
+
+  <div class="card">
+    <div class="stat-value" id="totalSales">読込中...</div>
+    <div class="stat-label">今月の売上合計</div>
+  </div>
+
+  <div class="card">
+    <div class="stat-value" id="salesCount">読込中...</div>
+    <div class="stat-label">今月の取引件数</div>
+  </div>
+
+  <div class="card">
+    <div class="stat-value" id="avgPrice">読込中...</div>
+    <div class="stat-label">平均単価</div>
+  </div>
+
+  <div class="card">
+    <h3>カテゴリ別売上</h3>
+    <div class="chart-container" id="categoryChart"></div>
+  </div>
+
+  <script>
+    // データ読み込み
+    window.onload = function() {
+      google.script.run
+        .withSuccessHandler(updateDashboard)
+        .withFailureHandler(function(error) {
+          console.error(error);
+        })
+        .getSalesData();
+    };
+
+    function updateDashboard(data) {
+      const today = new Date();
+      const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      let totalSales = 0;
+      let salesCount = 0;
+      const categoryData = {};
+
+      // データ集計
+      data.forEach(row => {
+        const date = new Date(row[0]);
+        if (date >= thisMonth) {
+          totalSales += row[5];
+          salesCount++;
+
+          // カテゴリ別集計
+          const category = row[1];
+          if (!categoryData[category]) {
+            categoryData[category] = 0;
+          }
+          categoryData[category] += row[5];
+        }
+      });
+
+      // 表示更新
+      document.getElementById('totalSales').textContent = '¥' + totalSales.toLocaleString();
+      document.getElementById('salesCount').textContent = salesCount + '件';
+      document.getElementById('avgPrice').textContent = salesCount > 0
+        ? '¥' + Math.round(totalSales / salesCount).toLocaleString()
+        : '¥0';
+
+      // カテゴリチャート描画
+      drawCategoryChart(categoryData);
+    }
+
+    function drawCategoryChart(data) {
+      const container = document.getElementById('categoryChart');
+      container.innerHTML = '';
+
+      const maxValue = Math.max(...Object.values(data));
+
+      Object.entries(data).forEach(([category, value]) => {
+        const barHeight = (value / maxValue) * 150;
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.style.height = barHeight + 'px';
+        bar.innerHTML = '<div class="bar-label">' + category + '</div>';
+        bar.title = category + ': ¥' + value.toLocaleString();
+        container.appendChild(bar);
+      });
+    }
+  </script>
+</body>
+</html>

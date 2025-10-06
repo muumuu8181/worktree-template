@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>タスク管理デモ - クリックで操作</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 { color: #333; }
+        .button-group {
+            margin: 30px 0;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #357ae8;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .spreadsheet-link {
+            display: inline-block;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #34a853;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 タスク管理システム デモ</h1>
+
+    <h2>クリックで操作できます！</h2>
+
+    <div class="button-group">
+        <h3>1. まずはこれをクリック</h3>
+        <button onclick="quickDemo()">
+            📊 サンプルデータ追加＆分析
+        </button>
+        <p>5つのタスクを追加して分析します</p>
+    </div>
+
+    <div class="button-group">
+        <h3>2. タスク追加</h3>
+        <button onclick="addTask()">
+            ➕ 新しいタスク追加
+        </button>
+        <p>個別にタスクを追加</p>
+    </div>
+
+    <div class="button-group">
+        <h3>3. レポート生成</h3>
+        <button onclick="generateReport()">
+            📈 分析レポート作成
+        </button>
+        <p>現在のタスクを分析</p>
+    </div>
+
+    <div class="button-group">
+        <h3>4. スプレッドシート確認</h3>
+        <a href="https://docs.google.com/spreadsheets/d/1P3dcgXLP9y-3utw6ByeT90Y3cDMkkeqcSVgnoKfTMKE/edit"
+           target="_blank"
+           class="spreadsheet-link">
+            📋 スプレッドシートを開く
+        </a>
+        <p>実際のデータを確認</p>
+    </div>
+
+    <div id="result" class="result" style="display:none;"></div>
+
+    <script>
+        const BASE_URL = 'https://script.google.com/macros/s/AKfycbyjragHeNH8loTujGlxGIGoiqOVDC6V5oXUp1jqJvYUFjk0AEz7qRwkYcKtBiybuPKf4w/exec';
+
+        async function quickDemo() {
+            showResult('実行中...');
+            const url = BASE_URL + '?action=quick';
+            const response = await fetch(url);
+            const data = await response.json();
+            showResult('✅ 成功！\n' + JSON.stringify(data, null, 2));
+        }
+
+        async function addTask() {
+            const task = prompt('タスク名を入力してください:', 'サンプルタスク');
+            if (!task) return;
+
+            const priority = prompt('優先度 (高/中/低):', '中');
+            const category = prompt('カテゴリ:', '一般');
+
+            showResult('追加中...');
+            const url = `${BASE_URL}?action=add&task=${encodeURIComponent(task)}&priority=${encodeURIComponent(priority)}&category=${encodeURIComponent(category)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            showResult('✅ タスク追加完了！\n' + JSON.stringify(data, null, 2));
+        }
+
+        async function generateReport() {
+            showResult('レポート生成中...');
+            const url = BASE_URL + '?action=report';
+            const response = await fetch(url);
+            const data = await response.json();
+            showResult('📊 レポート生成完了！\n' + JSON.stringify(data, null, 2));
+        }
+
+        function showResult(text) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = text;
+        }
+    </script>
+</body>
+</html>

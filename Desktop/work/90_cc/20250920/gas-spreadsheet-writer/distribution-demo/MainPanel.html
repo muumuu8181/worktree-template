@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #333;
+      margin-top: 0;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+    .input-group {
+      margin: 20px 0;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 5px;
+      font-size: 14px;
+      transition: border 0.3s;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      width: 100%;
+      margin: 10px 0;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .success {
+      background: #4caf50;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      display: none;
+      animation: slideIn 0.3s;
+    }
+    .data-display {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📊 メインパネル</h2>
+
+    <div class="input-group">
+      <label>データタイプ</label>
+      <select id="dataType">
+        <option value="売上">売上データ</option>
+        <option value="在庫">在庫データ</option>
+        <option value="顧客">顧客データ</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>値</label>
+      <input type="text" id="dataValue" placeholder="例: 100000">
+    </div>
+
+    <div class="input-group">
+      <label>メモ</label>
+      <textarea id="dataNotes" rows="3" placeholder="任意のメモ..."></textarea>
+    </div>
+
+    <button onclick="submitData()">
+      💾 データを保存
+    </button>
+
+    <button onclick="loadData()">
+      📥 データを読み込む
+    </button>
+
+    <button onclick="exportData()">
+      📤 エクスポート
+    </button>
+
+    <div id="success" class="success"></div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>処理中...</p>
+    </div>
+
+    <div id="dataDisplay" class="data-display" style="display:none;">
+      <h4>保存されたデータ</h4>
+      <div id="dataContent"></div>
+    </div>
+  </div>
+
+  <script>
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    function showSuccess(message) {
+      const successDiv = document.getElementById('success');
+      successDiv.textContent = message;
+      successDiv.style.display = 'block';
+      setTimeout(() => {
+        successDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    function submitData() {
+      const data = {
+        type: document.getElementById('dataType').value,
+        value: document.getElementById('dataValue').value,
+        notes: document.getElementById('dataNotes').value
+      };
+
+      if (!data.value) {
+        alert('値を入力してください');
+        return;
+      }
+
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showLoading(false);
+          showSuccess('✅ ' + result.message + ' (' + result.timestamp + ')');
+
+          // フォームをクリア
+          document.getElementById('dataValue').value = '';
+          document.getElementById('dataNotes').value = '';
+        })
+        .withFailureHandler(function(error) {
+          showLoading(false);
+          alert('エラー: ' + error);
+        })
+        .processData(data);
+    }
+
+    function loadData() {
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoading(false);
+          displayData(data);
+        })
+        .withFailureHandler(function(error) {
+          showLoading(false);
+          alert('エラー: ' + error);
+        })
+        .getData();
+    }
+
+    function displayData(data) {
+      const display = document.getElementById('dataDisplay');
+      const content = document.getElementById('dataContent');
+
+      if (data.length === 0) {
+        content.innerHTML = '<p>データがありません</p>';
+      } else {
+        let html = '<table style="width:100%">';
+        data.forEach((row, index) => {
+          if (index < 10) { // 最新10件表示
+            html += '<tr>';
+            row.forEach(cell => {
+              html += '<td style="padding:5px; border-bottom:1px solid #ddd">' + cell + '</td>';
+            });
+            html += '</tr>';
+          }
+        });
+        html += '</table>';
+        content.innerHTML = html;
+      }
+
+      display.style.display = 'block';
+    }
+
+    function exportData() {
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoading(false);
+          showSuccess('📤 データをエクスポートしました');
+        })
+        .withFailureHandler(function(error) {
+          showLoading(false);
+          alert('エラー: ' + error);
+        })
+        .exportToNewSheet();
+    }
+
+    // 初期化
+    window.onload = function() {
+      document.getElementById('dataValue').focus();
+    };
+  </script>
+</body>
+</html>

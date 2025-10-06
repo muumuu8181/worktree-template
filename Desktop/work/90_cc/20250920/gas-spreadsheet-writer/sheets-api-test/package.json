@@ -1,0 +1,13 @@
+{
+  "name": "sheets-api-test",
+  "version": "1.0.0",
+  "description": "Google Sheets API direct access test",
+  "main": "read-sheet-data.js",
+  "scripts": {
+    "start": "node read-sheet-data.js",
+    "test-clasp": "node test-clasp-run.js"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}
